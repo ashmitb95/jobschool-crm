@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useEffect, useState, useCallback } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Header } from "@/components/layout/header";
 import { LeadForm } from "@/components/leads/lead-form";
 import { Button } from "@/components/ui/button";
@@ -30,6 +30,8 @@ import {
   Loader2,
   Users,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { PipelineSelector } from "@/components/pipeline/pipeline-selector";
 
 interface Stage {
   id: string;
@@ -75,8 +77,14 @@ const SOURCE_LABELS: Record<string, string> = {
   referral: "Referral",
 };
 
-export default function LeadsPage() {
+export default function LeadsPageWrapper() {
+  return <Suspense><LeadsPageInner /></Suspense>;
+}
+
+function LeadsPageInner() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  const { pipelines } = useAuth();
   const [leads, setLeads] = useState<Lead[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [pagination, setPagination] = useState<Pagination>({
@@ -87,6 +95,19 @@ export default function LeadsPage() {
   });
   const [loading, setLoading] = useState(true);
   const [formOpen, setFormOpen] = useState(false);
+
+  // Pipeline selection — persisted in URL
+  const selectedPipelineId =
+    searchParams.get("pipelineId") || pipelines[0]?.id || "";
+
+  const setSelectedPipelineId = useCallback(
+    (pipelineId: string) => {
+      const params = new URLSearchParams(searchParams.toString());
+      params.set("pipelineId", pipelineId);
+      router.replace(`?${params.toString()}`);
+    },
+    [router, searchParams],
+  );
 
   // Filters
   const [search, setSearch] = useState("");
@@ -112,21 +133,32 @@ export default function LeadsPage() {
     setPage(1);
   }, [stageFilter, sourceFilter, dateFrom, dateTo]);
 
-  // Fetch stages on mount
+  // Reset stage filter when pipeline changes (old stage may not exist in new pipeline)
   useEffect(() => {
-    fetch("/api/stages")
+    setStageFilter("all");
+    setPage(1);
+  }, [selectedPipelineId]);
+
+  // Fetch stages scoped to the selected pipeline
+  useEffect(() => {
+    if (!selectedPipelineId) return;
+    const params = new URLSearchParams();
+    params.set("pipelineId", selectedPipelineId);
+    fetch(`/api/stages?${params.toString()}`)
       .then((res) => res.json())
       .then((data) => setStages(data))
       .catch(console.error);
-  }, []);
+  }, [selectedPipelineId]);
 
   // Fetch leads
   const fetchLeads = useCallback(async () => {
+    if (!selectedPipelineId) return;
     setLoading(true);
     try {
       const params = new URLSearchParams();
       params.set("page", String(page));
       params.set("limit", "20");
+      params.set("pipelineId", selectedPipelineId);
       if (debouncedSearch) params.set("search", debouncedSearch);
       if (stageFilter !== "all") params.set("stageId", stageFilter);
       if (sourceFilter !== "all") params.set("source", sourceFilter);
@@ -142,7 +174,7 @@ export default function LeadsPage() {
     } finally {
       setLoading(false);
     }
-  }, [page, debouncedSearch, stageFilter, sourceFilter, dateFrom, dateTo]);
+  }, [selectedPipelineId, page, debouncedSearch, stageFilter, sourceFilter, dateFrom, dateTo]);
 
   useEffect(() => {
     fetchLeads();
@@ -166,10 +198,17 @@ export default function LeadsPage() {
         title="Leads"
         description={`${pagination.total} total lead${pagination.total !== 1 ? "s" : ""}`}
         actions={
-          <Button onClick={() => setFormOpen(true)}>
-            <Plus className="w-4 h-4" />
-            Add Lead
-          </Button>
+          <div className="flex items-center gap-3">
+            <PipelineSelector
+              pipelines={pipelines}
+              value={selectedPipelineId}
+              onChange={setSelectedPipelineId}
+            />
+            <Button onClick={() => setFormOpen(true)}>
+              <Plus className="w-4 h-4" />
+              Add Lead
+            </Button>
+          </div>
         }
       />
 

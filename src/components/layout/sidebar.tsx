@@ -6,20 +6,31 @@ import {
   LayoutDashboard,
   Users,
   Kanban,
+  GitBranch,
   MessageSquare,
   Settings,
+  Shield,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
+import { Badge } from "@/components/ui/badge";
 
 const nav = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Leads", href: "/leads", icon: Users },
   { label: "Pipeline", href: "/pipeline", icon: Kanban },
+  { label: "Workflow", href: "/workflow", icon: GitBranch },
   { label: "Templates", href: "/templates", icon: MessageSquare },
   { label: "Settings", href: "/settings", icon: Settings },
 ];
 
+const adminNav = { label: "Admin", href: "/admin", icon: Shield };
+
 export function Sidebar() {
   const pathname = usePathname();
+  const { user, logout } = useAuth();
+
+  const items = user?.role === "admin" ? [...nav, adminNav] : nav;
 
   return (
     <aside className="w-56 border-r border-border bg-sidebar flex flex-col shrink-0">
@@ -31,7 +42,7 @@ export function Sidebar() {
       </div>
 
       <nav className="flex-1 py-4 px-3 space-y-1">
-        {nav.map((item) => {
+        {items.map((item) => {
           const isActive =
             item.href === "/"
               ? pathname === "/"
@@ -53,10 +64,29 @@ export function Sidebar() {
         })}
       </nav>
 
-      <div className="px-5 py-4 border-t border-border">
-        <p className="text-[10px] font-mono tracking-wider text-muted-foreground uppercase">
-          JobSchool CRM v1.0
-        </p>
+      <div className="px-3 py-4 border-t border-border space-y-3">
+        {user && (
+          <div className="flex items-center gap-2 px-2">
+            <div className="w-7 h-7 rounded-full bg-primary/20 flex items-center justify-center text-xs font-semibold text-primary">
+              {user.displayName.charAt(0).toUpperCase()}
+            </div>
+            <div className="flex-1 min-w-0">
+              <p className="text-xs font-medium text-foreground truncate">
+                {user.displayName}
+              </p>
+              <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
+                {user.role}
+              </Badge>
+            </div>
+          </div>
+        )}
+        <button
+          onClick={logout}
+          className="flex items-center gap-3 px-3 py-2 rounded-md text-sm text-muted-foreground hover:text-foreground hover:bg-accent transition-colors w-full"
+        >
+          <LogOut className="w-4 h-4" />
+          Sign out
+        </button>
       </div>
     </aside>
   );

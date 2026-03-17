@@ -24,7 +24,11 @@ import {
   XCircle,
   ExternalLink,
   Palette,
+  FileText,
 } from "lucide-react";
+import { StageFieldManager } from "@/components/settings/stage-field-manager";
+import { PipelineSelector } from "@/components/pipeline/pipeline-selector";
+import { useAuth } from "@/lib/auth-context";
 
 /* ---------- types ---------- */
 
@@ -59,9 +63,11 @@ const presetColors = [
 function StageRow({
   stage,
   index,
+  onFieldsClick,
 }: {
   stage: Stage;
   index: number;
+  onFieldsClick: () => void;
 }) {
   return (
     <div className="flex items-center gap-3 px-3 py-2.5 rounded-md border border-border bg-card hover:border-primary/20 transition-colors group">
@@ -84,13 +90,22 @@ function StageRow({
       <span className="text-xs text-muted-foreground tabular-nums">
         {stage.leadCount} lead{stage.leadCount !== 1 ? "s" : ""}
       </span>
+      <Button
+        variant="ghost"
+        size="sm"
+        className="h-7 px-2 text-xs text-muted-foreground hover:text-foreground opacity-0 group-hover:opacity-100 transition-opacity"
+        onClick={onFieldsClick}
+      >
+        <FileText className="w-3.5 h-3.5" />
+        Fields
+      </Button>
     </div>
   );
 }
 
 /* ---------- add stage form ---------- */
 
-function AddStageForm({ onCreated }: { onCreated: () => void }) {
+function AddStageForm({ onCreated, pipelineId }: { onCreated: () => void; pipelineId: string }) {
   const [name, setName] = useState("");
   const [color, setColor] = useState("#6b7280");
   const [showColorPicker, setShowColorPicker] = useState(false);
@@ -104,7 +119,7 @@ function AddStageForm({ onCreated }: { onCreated: () => void }) {
       const res = await fetch("/api/stages", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: name.trim(), color }),
+        body: JSON.stringify({ name: name.trim(), color, pipelineId }),
       });
       if (res.ok) {
         setName("");
@@ -240,15 +255,26 @@ function EnvStatusRow({
 /* ---------- main page ---------- */
 
 export default function SettingsPage() {
+  const { pipelines } = useAuth();
+  const [selectedPipelineId, setSelectedPipelineId] = useState<string>("");
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [fieldManagerStage, setFieldManagerStage] = useState<{id: string, name: string} | null>(null);
+
+  // Default to first pipeline
+  useEffect(() => {
+    if (!selectedPipelineId && pipelines.length > 0) {
+      setSelectedPipelineId(pipelines[0].id);
+    }
+  }, [pipelines, selectedPipelineId]);
 
   const fetchStages = useCallback(async () => {
+    if (!selectedPipelineId) return;
     setLoading(true);
     setError(null);
     try {
-      const res = await fetch("/api/stages");
+      const res = await fetch(`/api/stages?pipelineId=${selectedPipelineId}`);
       if (!res.ok) throw new Error("Failed to fetch stages");
       const data: Stage[] = await res.json();
       setStages(data);
@@ -257,10 +283,12 @@ export default function SettingsPage() {
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [selectedPipelineId]);
 
   useEffect(() => {
-    fetchStages();
+    if (selectedPipelineId) {
+      fetchStages();
+    }
   }, [fetchStages]);
 
   if (loading) {
@@ -299,6 +327,16 @@ export default function SettingsPage() {
 
       <div className="flex-1 overflow-y-auto p-6">
         <div className="max-w-3xl mx-auto space-y-6">
+          {/* ---------- Pipeline Selector ---------- */}
+          <div className="flex items-center gap-3">
+            <span className="text-sm font-medium text-muted-foreground">Pipeline:</span>
+            <PipelineSelector
+              pipelines={pipelines}
+              value={selectedPipelineId}
+              onChange={setSelectedPipelineId}
+            />
+          </div>
+
           {/* ---------- Stage Management ---------- */}
           <Card className="border-border">
             <CardHeader>
@@ -315,14 +353,21 @@ export default function SettingsPage() {
               ) : (
                 <div className="space-y-1.5">
                   {stages.map((stage, i) => (
-                    <StageRow key={stage.id} stage={stage} index={i} />
+                    <StageRow
+                      key={stage.id}
+                      stage={stage}
+                      index={i}
+                      onFieldsClick={() =>
+                        setFieldManagerStage({ id: stage.id, name: stage.name })
+                      }
+                    />
                   ))}
                 </div>
               )}
 
               <Separator />
 
-              <AddStageForm onCreated={fetchStages} />
+              <AddStageForm onCreated={fetchStages} pipelineId={selectedPipelineId} />
             </CardContent>
           </Card>
 
@@ -401,6 +446,16 @@ export default function SettingsPage() {
           </Card>
         </div>
       </div>
+
+      {/* Stage Field Manager Sheet */}
+      <StageFieldManager
+        stageId={fieldManagerStage?.id ?? ""}
+        stageName={fieldManagerStage?.name ?? ""}
+        open={fieldManagerStage !== null}
+        onOpenChange={(open) => {
+          if (!open) setFieldManagerStage(null);
+        }}
+      />
     </div>
   );
 }

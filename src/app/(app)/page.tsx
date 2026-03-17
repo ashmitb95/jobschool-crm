@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { Header } from "@/components/layout/header";
 import {
   Card,
@@ -10,6 +10,8 @@ import {
 } from "@/components/ui/card";
 import { Users, UserPlus, MessageSquare, TrendingUp } from "lucide-react";
 import Link from "next/link";
+import { useAuth } from "@/lib/auth-context";
+import { PipelineSelector } from "@/components/pipeline/pipeline-selector";
 
 interface Stage {
   id: string;
@@ -50,67 +52,87 @@ const SOURCE_LABELS: Record<string, string> = {
 };
 
 export default function DashboardPage() {
+  const { pipelines } = useAuth();
+  const [selectedPipelineId, setSelectedPipelineId] = useState("");
   const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
 
+  // Default to first pipeline once pipelines load
   useEffect(() => {
-    async function fetchDashboard() {
-      try {
-        const [stagesRes, leadsRes, recentRes] = await Promise.all([
-          fetch("/api/stages"),
-          fetch("/api/leads?limit=1000"),
-          fetch("/api/leads?limit=5&sortBy=newest"),
-        ]);
-
-        const stages: Stage[] = await stagesRes.json();
-        const leadsData = await leadsRes.json();
-        const recentData = await recentRes.json();
-
-        const allLeads = leadsData.leads || [];
-        const totalLeads = leadsData.pagination?.total || allLeads.length;
-
-        // Calculate leads this month
-        const now = new Date();
-        const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
-        const leadsThisMonth = allLeads.filter(
-          (l: Lead) => l.createdAt >= monthStart
-        ).length;
-
-        // Calculate messages sent (sum from a rough estimate based on leads)
-        // We don't have a dedicated messages count endpoint, so show total leads as proxy
-        const messagesSent = allLeads.length; // placeholder
-
-        // Conversion rate: leads in last stage / total
-        const sortedStages = [...stages].sort((a, b) => a.order - b.order);
-        const lastStage = sortedStages[sortedStages.length - 1];
-        const convertedCount = lastStage?.leadCount || 0;
-        const conversionRate =
-          totalLeads > 0
-            ? Math.round((convertedCount / totalLeads) * 100)
-            : 0;
-
-        setData({
-          totalLeads,
-          leadsThisMonth,
-          messagesSent,
-          conversionRate,
-          stages,
-          recentLeads: recentData.leads || [],
-        });
-      } catch (err) {
-        console.error("Failed to load dashboard:", err);
-      } finally {
-        setLoading(false);
-      }
+    if (pipelines.length > 0 && !selectedPipelineId) {
+      setSelectedPipelineId(pipelines[0].id);
     }
+  }, [pipelines, selectedPipelineId]);
 
+  const fetchDashboard = useCallback(async () => {
+    if (!selectedPipelineId) return;
+    setLoading(true);
+    try {
+      const pq = `pipelineId=${selectedPipelineId}`;
+      const [stagesRes, leadsRes, recentRes] = await Promise.all([
+        fetch(`/api/stages?${pq}`),
+        fetch(`/api/leads?limit=1000&${pq}`),
+        fetch(`/api/leads?limit=5&sortBy=newest&${pq}`),
+      ]);
+
+      const stages: Stage[] = await stagesRes.json();
+      const leadsData = await leadsRes.json();
+      const recentData = await recentRes.json();
+
+      const allLeads = leadsData.leads || [];
+      const totalLeads = leadsData.pagination?.total || allLeads.length;
+
+      // Calculate leads this month
+      const now = new Date();
+      const monthStart = new Date(now.getFullYear(), now.getMonth(), 1).toISOString();
+      const leadsThisMonth = allLeads.filter(
+        (l: Lead) => l.createdAt >= monthStart
+      ).length;
+
+      // Calculate messages sent (sum from a rough estimate based on leads)
+      // We don't have a dedicated messages count endpoint, so show total leads as proxy
+      const messagesSent = allLeads.length; // placeholder
+
+      // Conversion rate: leads in last stage / total
+      const sortedStages = [...stages].sort((a, b) => a.order - b.order);
+      const lastStage = sortedStages[sortedStages.length - 1];
+      const convertedCount = lastStage?.leadCount || 0;
+      const conversionRate =
+        totalLeads > 0
+          ? Math.round((convertedCount / totalLeads) * 100)
+          : 0;
+
+      setData({
+        totalLeads,
+        leadsThisMonth,
+        messagesSent,
+        conversionRate,
+        stages,
+        recentLeads: recentData.leads || [],
+      });
+    } catch (err) {
+      console.error("Failed to load dashboard:", err);
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedPipelineId]);
+
+  useEffect(() => {
     fetchDashboard();
-  }, []);
+  }, [fetchDashboard]);
+
+  const pipelineSelectorEl = (
+    <PipelineSelector
+      pipelines={pipelines}
+      value={selectedPipelineId}
+      onChange={setSelectedPipelineId}
+    />
+  );
 
   if (loading) {
     return (
       <div>
-        <Header title="Dashboard" description="Overview of your CRM activity" />
+        <Header title="Dashboard" description="Overview of your CRM activity" actions={pipelineSelectorEl} />
         <div className="p-8">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[...Array(4)].map((_, i) => (
@@ -130,7 +152,7 @@ export default function DashboardPage() {
   if (!data) {
     return (
       <div>
-        <Header title="Dashboard" description="Overview of your CRM activity" />
+        <Header title="Dashboard" description="Overview of your CRM activity" actions={pipelineSelectorEl} />
         <div className="p-8 text-center text-muted-foreground">
           Failed to load dashboard data.
         </div>
@@ -173,7 +195,7 @@ export default function DashboardPage() {
 
   return (
     <div>
-      <Header title="Dashboard" description="Overview of your CRM activity" />
+      <Header title="Dashboard" description="Overview of your CRM activity" actions={pipelineSelectorEl} />
 
       <div className="p-8 space-y-8">
         {/* Stats Cards */}

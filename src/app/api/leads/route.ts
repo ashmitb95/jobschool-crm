@@ -1,12 +1,20 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, stages } from "@/lib/db/schema";
-import { eq, like, and, gte, lte, desc, asc, count, or } from "drizzle-orm";
+import { eq, like, and, gte, lte, desc, asc, count, or, isNull, inArray } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { sendStageMessage } from "@/lib/message-engine";
+import { requireAuth, getUserPipelineIds, userHasPipelineAccess } from "@/lib/auth";
+import { apiError, apiValidationError } from "@/lib/api-response";
+import { createLeadSchema } from "@/lib/validations";
+import { logAudit, logLeadActivity } from "@/lib/audit";
 
 export async function GET(req: NextRequest) {
+  const user = await requireAuth(req);
+  if (user instanceof NextResponse) return user;
+
   const params = req.nextUrl.searchParams;
+  const pipelineId = params.get("pipelineId") || undefined;
   const search = params.get("search") || undefined;
   const stageId = params.get("stageId") || undefined;
   const source = params.get("source") || undefined;
@@ -16,14 +24,28 @@ export async function GET(req: NextRequest) {
   const limit = parseInt(params.get("limit") || "20");
   const sortBy = params.get("sortBy") || "newest";
 
-  const conditions = [];
+  const conditions = [isNull(leads.deletedAt)];
+
+  // Pipeline scoping
+  if (pipelineId) {
+    const hasAccess = await userHasPipelineAccess(user.id, user.role, user.orgId, pipelineId);
+    if (!hasAccess) return apiError("No access to this pipeline", 403);
+    conditions.push(eq(leads.pipelineId, pipelineId));
+  } else {
+    const pipelineIds = await getUserPipelineIds(user.id, user.role, user.orgId);
+    if (pipelineIds.length === 0) {
+      return NextResponse.json({ leads: [], pagination: { page, limit, total: 0, totalPages: 0 } });
+    }
+    conditions.push(inArray(leads.pipelineId, pipelineIds));
+  }
+
   if (search) {
     conditions.push(
       or(
         like(leads.name, `%${search}%`),
         like(leads.email, `%${search}%`),
         like(leads.phone, `%${search}%`)
-      )
+      )!
     );
   }
   if (stageId) conditions.push(eq(leads.stageId, stageId));
@@ -31,7 +53,7 @@ export async function GET(req: NextRequest) {
   if (dateFrom) conditions.push(gte(leads.createdAt, dateFrom));
   if (dateTo) conditions.push(lte(leads.createdAt, dateTo));
 
-  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const where = and(...conditions);
 
   const orderCol =
     sortBy === "oldest" ? asc(leads.createdAt) :
@@ -47,6 +69,7 @@ export async function GET(req: NextRequest) {
         phone: leads.phone,
         source: leads.source,
         stageId: leads.stageId,
+        pipelineId: leads.pipelineId,
         notes: leads.notes,
         createdAt: leads.createdAt,
         updatedAt: leads.updatedAt,
@@ -75,20 +98,38 @@ export async function GET(req: NextRequest) {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
-  const { name, phone, email, source, notes, stageId } = body;
+  const user = await requireAuth(req);
+  if (user instanceof NextResponse) return user;
 
-  if (!name || !phone) {
-    return NextResponse.json({ error: "Name and phone are required" }, { status: 400 });
-  }
+  const body = await req.json();
+  const parsed = createLeadSchema.safeParse(body);
+  if (!parsed.success) return apiValidationError(parsed.error);
+
+  const { name, phone, email, source, notes, stageId, pipelineId } = parsed.data;
+
+  const hasAccess = await userHasPipelineAccess(user.id, user.role, user.orgId, pipelineId);
+  if (!hasAccess) return apiError("No access to this pipeline", 403);
 
   let assignStageId = stageId;
   if (!assignStageId) {
-    const [defaultStage] = await db.select().from(stages).where(eq(stages.isDefault, true)).limit(1);
+    const [defaultStage] = await db
+      .select()
+      .from(stages)
+      .where(and(eq(stages.pipelineId, pipelineId), eq(stages.isDefault, true)))
+      .limit(1);
     if (!defaultStage) {
-      return NextResponse.json({ error: "No default stage configured" }, { status: 500 });
+      // Fall back to first stage in pipeline
+      const [firstStage] = await db
+        .select()
+        .from(stages)
+        .where(eq(stages.pipelineId, pipelineId))
+        .orderBy(asc(stages.order))
+        .limit(1);
+      if (!firstStage) return apiError("No stages configured for this pipeline", 400);
+      assignStageId = firstStage.id;
+    } else {
+      assignStageId = defaultStage.id;
     }
-    assignStageId = defaultStage.id;
   }
 
   const id = createId();
@@ -101,18 +142,34 @@ export async function POST(req: NextRequest) {
     source: source || "manual",
     notes: notes || null,
     stageId: assignStageId,
+    pipelineId,
     createdAt: now,
     updatedAt: now,
   });
 
-  // Fire welcome message
   sendStageMessage(id, assignStageId).catch(console.error);
+
+  await logAudit({
+    userId: user.id,
+    orgId: user.orgId,
+    action: "lead.created",
+    entityType: "lead",
+    entityId: id,
+    metadata: { name, pipelineId },
+  });
+
+  await logLeadActivity({
+    leadId: id,
+    userId: user.id,
+    action: "created",
+    description: `Lead created by ${user.displayName}`,
+  });
 
   const [lead] = await db
     .select({
       id: leads.id, name: leads.name, email: leads.email, phone: leads.phone,
-      source: leads.source, stageId: leads.stageId, notes: leads.notes,
-      createdAt: leads.createdAt, stageName: stages.name, stageColor: stages.color,
+      source: leads.source, stageId: leads.stageId, pipelineId: leads.pipelineId,
+      notes: leads.notes, createdAt: leads.createdAt, stageName: stages.name, stageColor: stages.color,
     })
     .from(leads)
     .leftJoin(stages, eq(leads.stageId, stages.id))

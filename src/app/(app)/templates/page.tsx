@@ -27,6 +27,7 @@ import {
   Paperclip,
   X,
 } from "lucide-react";
+import { useAuth } from "@/lib/auth-context";
 
 /* ---------- types ---------- */
 
@@ -34,6 +35,7 @@ interface Stage {
   id: string;
   name: string;
   color: string;
+  pipelineName: string;
 }
 
 interface Template {
@@ -79,6 +81,18 @@ function renderPreview(body: string): string {
   return rendered;
 }
 
+/* ---------- helpers ---------- */
+
+function groupStagesByPipeline(stages: Stage[]): Record<string, Stage[]> {
+  const groups: Record<string, Stage[]> = {};
+  for (const s of stages) {
+    const key = s.pipelineName || "Unassigned";
+    if (!groups[key]) groups[key] = [];
+    groups[key].push(s);
+  }
+  return groups;
+}
+
 /* ---------- channel labels ---------- */
 
 const channelLabels: Record<string, string> = {
@@ -110,7 +124,6 @@ function TemplateCard({
     waTemplateLanguage: template.waTemplateLanguage || "en",
   });
 
-  // Sync editing state when template changes externally
   useEffect(() => {
     if (!expanded) {
       setEditing({
@@ -136,7 +149,6 @@ function TemplateCard({
 
   return (
     <div className="rounded-lg border border-border bg-card overflow-hidden">
-      {/* collapsed view */}
       <button
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
         onClick={() => setExpanded(!expanded)}
@@ -148,10 +160,7 @@ function TemplateCard({
               {template.name}
             </span>
             {template.stage && (
-              <Badge
-                variant="outline"
-                className="text-[10px] px-1.5 py-0 h-4"
-              >
+              <Badge variant="outline" className="text-[10px] px-1.5 py-0 h-4">
                 {template.stage.name}
               </Badge>
             )}
@@ -175,72 +184,32 @@ function TemplateCard({
         )}
       </button>
 
-      {/* expanded editor */}
       {expanded && (
         <div className="px-4 pb-4 space-y-4 border-t border-border pt-4">
-          {/* name */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Template Name
-            </label>
-            <Input
-              value={editing.name}
-              onChange={(e) =>
-                setEditing((s) => ({ ...s, name: e.target.value }))
-              }
-              placeholder="e.g. Welcome Message"
-            />
+            <label className="text-xs font-medium text-muted-foreground">Template Name</label>
+            <Input value={editing.name} onChange={(e) => setEditing((s) => ({ ...s, name: e.target.value }))} placeholder="e.g. Welcome Message" />
           </div>
 
-          {/* body */}
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
-              <label className="text-xs font-medium text-muted-foreground">
-                Message Body
-              </label>
+              <label className="text-xs font-medium text-muted-foreground">Message Body</label>
               <div className="flex flex-wrap gap-1">
                 {Object.keys(sampleData).map((v) => (
-                  <button
-                    key={v}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-mono"
-                    onClick={() =>
-                      setEditing((s) => ({
-                        ...s,
-                        body: s.body + " " + v,
-                      }))
-                    }
-                  >
+                  <button key={v} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-mono" onClick={() => setEditing((s) => ({ ...s, body: s.body + " " + v }))}>
                     {v}
                   </button>
                 ))}
               </div>
             </div>
-            <Textarea
-              value={editing.body}
-              onChange={(e) =>
-                setEditing((s) => ({ ...s, body: e.target.value }))
-              }
-              rows={4}
-              placeholder="Hi {{name}}, welcome to JobSchool..."
-              className="font-mono text-xs"
-            />
+            <Textarea value={editing.body} onChange={(e) => setEditing((s) => ({ ...s, body: e.target.value }))} rows={4} placeholder="Hi {{name}}, welcome to JobSchool..." className="font-mono text-xs" />
           </div>
 
-          {/* channel + stage row */}
           <div className="grid grid-cols-2 gap-3">
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Channel
-              </label>
-              <Select
-                value={editing.channel}
-                onValueChange={(v) =>
-                  setEditing((s) => ({ ...s, channel: v }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
+              <label className="text-xs font-medium text-muted-foreground">Channel</label>
+              <Select value={editing.channel} onValueChange={(v) => setEditing((s) => ({ ...s, channel: v }))}>
+                <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="whatsapp">WhatsApp</SelectItem>
                   <SelectItem value="sms">SMS</SelectItem>
@@ -248,112 +217,61 @@ function TemplateCard({
               </Select>
             </div>
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-muted-foreground">
-                Linked Stage
-              </label>
-              <Select
-                value={editing.stageId}
-                onValueChange={(v) =>
-                  setEditing((s) => ({
-                    ...s,
-                    stageId: v === "none" ? "" : v,
-                  }))
-                }
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder="None" />
-                </SelectTrigger>
+              <label className="text-xs font-medium text-muted-foreground">Linked Stage</label>
+              <Select value={editing.stageId || "none"} onValueChange={(v) => setEditing((s) => ({ ...s, stageId: v === "none" ? "" : v }))}>
+                <SelectTrigger className="w-full"><SelectValue placeholder="None" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">None</SelectItem>
-                  {stages.map((s) => (
-                    <SelectItem key={s.id} value={s.id}>
-                      <span className="flex items-center gap-2">
-                        <span
-                          className="w-2 h-2 rounded-full inline-block"
-                          style={{ backgroundColor: s.color }}
-                        />
-                        {s.name}
-                      </span>
-                    </SelectItem>
+                  {Object.entries(groupStagesByPipeline(stages)).map(([pipelineName, pStages]) => (
+                    <div key={pipelineName}>
+                      <div className="px-2 py-1 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider">{pipelineName}</div>
+                      {pStages.map((s) => (
+                        <SelectItem key={s.id} value={s.id}>
+                          <span className="flex items-center gap-2">
+                            <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: s.color }} />
+                            {s.name}
+                          </span>
+                        </SelectItem>
+                      ))}
+                    </div>
                   ))}
                 </SelectContent>
               </Select>
             </div>
           </div>
 
-          {/* attachment url */}
           <div className="space-y-1.5">
-            <label className="text-xs font-medium text-muted-foreground">
-              Attachment URL
-            </label>
-            <Input
-              value={editing.attachmentUrl}
-              onChange={(e) =>
-                setEditing((s) => ({ ...s, attachmentUrl: e.target.value }))
-              }
-              placeholder="https://..."
-            />
+            <label className="text-xs font-medium text-muted-foreground">Attachment URL</label>
+            <Input value={editing.attachmentUrl} onChange={(e) => setEditing((s) => ({ ...s, attachmentUrl: e.target.value }))} placeholder="https://..." />
           </div>
 
-          {/* WhatsApp approved template */}
           {editing.channel === "whatsapp" && (
             <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3">
-              <p className="text-xs font-medium text-muted-foreground">
-                WhatsApp Approved Template (required for first contact)
-              </p>
+              <p className="text-xs font-medium text-muted-foreground">WhatsApp Approved Template (required for first contact)</p>
               <div className="grid grid-cols-2 gap-3">
                 <div className="space-y-1.5">
-                  <label className="text-[11px] text-muted-foreground">
-                    WA Template Name
-                  </label>
-                  <Input
-                    value={editing.waTemplateName}
-                    onChange={(e) =>
-                      setEditing((s) => ({ ...s, waTemplateName: e.target.value }))
-                    }
-                    placeholder="e.g. welcome_new_lead"
-                    className="font-mono text-xs"
-                  />
+                  <label className="text-[11px] text-muted-foreground">WA Template Name</label>
+                  <Input value={editing.waTemplateName} onChange={(e) => setEditing((s) => ({ ...s, waTemplateName: e.target.value }))} placeholder="e.g. welcome_new_lead" className="font-mono text-xs" />
                 </div>
                 <div className="space-y-1.5">
-                  <label className="text-[11px] text-muted-foreground">
-                    Language Code
-                  </label>
-                  <Input
-                    value={editing.waTemplateLanguage}
-                    onChange={(e) =>
-                      setEditing((s) => ({ ...s, waTemplateLanguage: e.target.value }))
-                    }
-                    placeholder="en"
-                    className="font-mono text-xs"
-                  />
+                  <label className="text-[11px] text-muted-foreground">Language Code</label>
+                  <Input value={editing.waTemplateLanguage} onChange={(e) => setEditing((s) => ({ ...s, waTemplateLanguage: e.target.value }))} placeholder="en" className="font-mono text-xs" />
                 </div>
               </div>
-              <p className="text-[10px] text-muted-foreground/70">
-                Must match a template approved in your WhatsApp Business Manager. Leave blank to send freeform text (only works within 24hr messaging window).
-              </p>
             </div>
           )}
 
           <Separator />
 
-          {/* preview panel */}
           <div>
-            <button
-              className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-2"
-              onClick={() => setShowPreview(!showPreview)}
-            >
+            <button className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors mb-2" onClick={() => setShowPreview(!showPreview)}>
               <Eye className="w-3.5 h-3.5" />
               {showPreview ? "Hide Preview" : "Show Preview"}
             </button>
             {showPreview && (
               <div className="rounded-md border border-border bg-muted/30 p-3">
-                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">
-                  Preview with sample data
-                </p>
-                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-                  {renderPreview(editing.body)}
-                </p>
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Preview with sample data</p>
+                <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{renderPreview(editing.body)}</p>
                 {editing.attachmentUrl && (
                   <div className="flex items-center gap-1.5 mt-2 text-xs text-muted-foreground">
                     <Paperclip className="w-3 h-3" />
@@ -364,14 +282,9 @@ function TemplateCard({
             )}
           </div>
 
-          {/* save button */}
           <div className="flex justify-end">
             <Button size="sm" onClick={handleSave} disabled={saving}>
-              {saving ? (
-                <Loader2 className="w-4 h-4 animate-spin" />
-              ) : (
-                <Save className="w-4 h-4" />
-              )}
+              {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Save className="w-4 h-4" />}
               Save
             </Button>
           </div>
@@ -394,13 +307,8 @@ function NewTemplateForm({
 }) {
   const [saving, setSaving] = useState(false);
   const [form, setForm] = useState({
-    name: "",
-    body: "",
-    channel: "whatsapp",
-    attachmentUrl: "",
-    stageId: "",
-    waTemplateName: "",
-    waTemplateLanguage: "en",
+    name: "", body: "", channel: "whatsapp", attachmentUrl: "", stageId: "",
+    waTemplateName: "", waTemplateLanguage: "en",
   });
 
   async function handleCreate() {
@@ -411,18 +319,14 @@ function NewTemplateForm({
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
-          name: form.name,
-          body: form.body,
-          channel: form.channel,
+          name: form.name, body: form.body, channel: form.channel,
           attachmentUrl: form.attachmentUrl || null,
           stageId: form.stageId || null,
           waTemplateName: form.waTemplateName || null,
           waTemplateLanguage: form.waTemplateLanguage || "en",
         }),
       });
-      if (res.ok) {
-        onCreated();
-      }
+      if (res.ok) onCreated();
     } finally {
       setSaving(false);
     }
@@ -432,65 +336,35 @@ function NewTemplateForm({
     <div className="rounded-lg border border-primary/30 bg-card p-4 space-y-4">
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground">New Template</h3>
-        <button
-          onClick={onCancel}
-          className="text-muted-foreground hover:text-foreground transition-colors"
-        >
+        <button onClick={onCancel} className="text-muted-foreground hover:text-foreground transition-colors">
           <X className="w-4 h-4" />
         </button>
       </div>
 
       <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          Name
-        </label>
-        <Input
-          value={form.name}
-          onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))}
-          placeholder="e.g. Follow-up Message"
-        />
+        <label className="text-xs font-medium text-muted-foreground">Name</label>
+        <Input value={form.name} onChange={(e) => setForm((s) => ({ ...s, name: e.target.value }))} placeholder="e.g. Follow-up Message" />
       </div>
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">
-          <label className="text-xs font-medium text-muted-foreground">
-            Message Body
-          </label>
+          <label className="text-xs font-medium text-muted-foreground">Message Body</label>
           <div className="flex flex-wrap gap-1">
             {Object.keys(sampleData).map((v) => (
-              <button
-                key={v}
-                className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-mono"
-                onClick={() =>
-                  setForm((s) => ({ ...s, body: s.body + " " + v }))
-                }
-              >
+              <button key={v} className="text-[10px] px-1.5 py-0.5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors font-mono" onClick={() => setForm((s) => ({ ...s, body: s.body + " " + v }))}>
                 {v}
               </button>
             ))}
           </div>
         </div>
-        <Textarea
-          value={form.body}
-          onChange={(e) => setForm((s) => ({ ...s, body: e.target.value }))}
-          rows={4}
-          placeholder="Hi {{name}}, welcome to JobSchool..."
-          className="font-mono text-xs"
-        />
+        <Textarea value={form.body} onChange={(e) => setForm((s) => ({ ...s, body: e.target.value }))} rows={4} placeholder="Hi {{name}}, welcome to JobSchool..." className="font-mono text-xs" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Channel
-          </label>
-          <Select
-            value={form.channel}
-            onValueChange={(v) => setForm((s) => ({ ...s, channel: v }))}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue />
-            </SelectTrigger>
+          <label className="text-xs font-medium text-muted-foreground">Channel</label>
+          <Select value={form.channel} onValueChange={(v) => setForm((s) => ({ ...s, channel: v }))}>
+            <SelectTrigger className="w-full"><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="whatsapp">WhatsApp</SelectItem>
               <SelectItem value="sms">SMS</SelectItem>
@@ -498,27 +372,15 @@ function NewTemplateForm({
           </Select>
         </div>
         <div className="space-y-1.5">
-          <label className="text-xs font-medium text-muted-foreground">
-            Linked Stage
-          </label>
-          <Select
-            value={form.stageId || "none"}
-            onValueChange={(v) =>
-              setForm((s) => ({ ...s, stageId: v === "none" ? "" : v }))
-            }
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder="None" />
-            </SelectTrigger>
+          <label className="text-xs font-medium text-muted-foreground">Linked Stage</label>
+          <Select value={form.stageId || "none"} onValueChange={(v) => setForm((s) => ({ ...s, stageId: v === "none" ? "" : v }))}>
+            <SelectTrigger className="w-full"><SelectValue placeholder="None" /></SelectTrigger>
             <SelectContent>
               <SelectItem value="none">None</SelectItem>
               {stages.map((s) => (
                 <SelectItem key={s.id} value={s.id}>
                   <span className="flex items-center gap-2">
-                    <span
-                      className="w-2 h-2 rounded-full inline-block"
-                      style={{ backgroundColor: s.color }}
-                    />
+                    <span className="w-2 h-2 rounded-full inline-block" style={{ backgroundColor: s.color }} />
                     {s.name}
                   </span>
                 </SelectItem>
@@ -528,82 +390,16 @@ function NewTemplateForm({
         </div>
       </div>
 
-      <div className="space-y-1.5">
-        <label className="text-xs font-medium text-muted-foreground">
-          Attachment URL
-        </label>
-        <Input
-          value={form.attachmentUrl}
-          onChange={(e) =>
-            setForm((s) => ({ ...s, attachmentUrl: e.target.value }))
-          }
-          placeholder="https://..."
-        />
-      </div>
-
-      {/* WhatsApp approved template */}
-      {form.channel === "whatsapp" && (
-        <div className="space-y-3 rounded-md border border-border bg-muted/20 p-3">
-          <p className="text-xs font-medium text-muted-foreground">
-            WhatsApp Approved Template (required for first contact)
-          </p>
-          <div className="grid grid-cols-2 gap-3">
-            <div className="space-y-1.5">
-              <label className="text-[11px] text-muted-foreground">
-                WA Template Name
-              </label>
-              <Input
-                value={form.waTemplateName}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, waTemplateName: e.target.value }))
-                }
-                placeholder="e.g. welcome_new_lead"
-                className="font-mono text-xs"
-              />
-            </div>
-            <div className="space-y-1.5">
-              <label className="text-[11px] text-muted-foreground">
-                Language Code
-              </label>
-              <Input
-                value={form.waTemplateLanguage}
-                onChange={(e) =>
-                  setForm((s) => ({ ...s, waTemplateLanguage: e.target.value }))
-                }
-                placeholder="en"
-                className="font-mono text-xs"
-              />
-            </div>
-          </div>
-          <p className="text-[10px] text-muted-foreground/70">
-            Must match a template approved in your WhatsApp Business Manager. Leave blank to send freeform text (only works within 24hr messaging window).
-          </p>
-        </div>
-      )}
-
-      {/* inline preview */}
       {form.body && (
         <div className="rounded-md border border-border bg-muted/30 p-3">
-          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">
-            Preview
-          </p>
-          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">
-            {renderPreview(form.body)}
-          </p>
+          <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1.5 font-medium">Preview</p>
+          <p className="text-sm text-foreground whitespace-pre-wrap leading-relaxed">{renderPreview(form.body)}</p>
         </div>
       )}
 
       <div className="flex justify-end">
-        <Button
-          size="sm"
-          onClick={handleCreate}
-          disabled={saving || !form.name.trim() || !form.body.trim()}
-        >
-          {saving ? (
-            <Loader2 className="w-4 h-4 animate-spin" />
-          ) : (
-            <Plus className="w-4 h-4" />
-          )}
+        <Button size="sm" onClick={handleCreate} disabled={saving || !form.name.trim() || !form.body.trim()}>
+          {saving ? <Loader2 className="w-4 h-4 animate-spin" /> : <Plus className="w-4 h-4" />}
           Create Template
         </Button>
       </div>
@@ -614,6 +410,7 @@ function NewTemplateForm({
 /* ---------- main page ---------- */
 
 export default function TemplatesPage() {
+  const { pipelines } = useAuth();
   const [templates, setTemplates] = useState<Template[]>([]);
   const [stages, setStages] = useState<Stage[]>([]);
   const [loading, setLoading] = useState(true);
@@ -621,53 +418,57 @@ export default function TemplatesPage() {
   const [showNewForm, setShowNewForm] = useState(false);
 
   const fetchData = useCallback(async () => {
+    if (pipelines.length === 0) return;
     setLoading(true);
     setError(null);
     try {
-      const [tplRes, stagesRes] = await Promise.all([
-        fetch("/api/templates"),
-        fetch("/api/stages"),
-      ]);
-      if (!tplRes.ok || !stagesRes.ok) throw new Error("Failed to fetch data");
-      const tplData = await tplRes.json();
-      const stagesData = await stagesRes.json();
-      setTemplates(tplData);
-      setStages(
-        stagesData.map((s: Stage & { leadCount?: number }) => ({
+      // Fetch templates + stages from ALL accessible pipelines
+      const stagePromises = pipelines.map(async (p) => {
+        const res = await fetch(`/api/stages?pipelineId=${p.id}`);
+        if (!res.ok) return [];
+        const data = await res.json();
+        const arr = Array.isArray(data) ? data : data.data || data;
+        return arr.map((s: Stage & { leadCount?: number }) => ({
           id: s.id,
           name: s.name,
           color: s.color,
-        }))
-      );
+          pipelineName: p.name,
+        }));
+      });
+
+      const [tplRes, ...stageResults] = await Promise.all([
+        fetch("/api/templates"),
+        ...stagePromises,
+      ]);
+
+      if (!tplRes.ok) throw new Error("Failed to fetch templates");
+      const tplData = await tplRes.json();
+      setTemplates(Array.isArray(tplData) ? tplData : tplData.data || tplData);
+      setStages(stageResults.flat() as Stage[]);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unknown error");
     } finally {
       setLoading(false);
     }
-  }, []);
+  }, [pipelines]);
 
   useEffect(() => {
-    fetchData();
-  }, [fetchData]);
+    if (pipelines.length > 0) fetchData();
+  }, [fetchData, pipelines]);
 
   async function handleSave(id: string, data: EditingState) {
     const res = await fetch("/api/templates", {
       method: "PATCH",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
-        id,
-        name: data.name,
-        body: data.body,
-        channel: data.channel,
+        id, name: data.name, body: data.body, channel: data.channel,
         attachmentUrl: data.attachmentUrl || null,
         stageId: data.stageId || null,
         waTemplateName: data.waTemplateName || null,
         waTemplateLanguage: data.waTemplateLanguage || "en",
       }),
     });
-    if (res.ok) {
-      await fetchData();
-    }
+    if (res.ok) await fetchData();
   }
 
   if (loading) {
@@ -689,8 +490,7 @@ export default function TemplatesPage() {
           <AlertCircle className="w-8 h-8 text-destructive" />
           <p className="text-sm text-muted-foreground">{error}</p>
           <Button variant="outline" size="sm" onClick={fetchData}>
-            <RefreshCw className="w-4 h-4" />
-            Retry
+            <RefreshCw className="w-4 h-4" />Retry
           </Button>
         </div>
       </div>
@@ -703,22 +503,8 @@ export default function TemplatesPage() {
         title="Templates"
         description="Manage message templates"
         actions={
-          <Button
-            size="sm"
-            onClick={() => setShowNewForm(!showNewForm)}
-            variant={showNewForm ? "outline" : "default"}
-          >
-            {showNewForm ? (
-              <>
-                <X className="w-4 h-4" />
-                Cancel
-              </>
-            ) : (
-              <>
-                <Plus className="w-4 h-4" />
-                Add Template
-              </>
-            )}
+          <Button size="sm" onClick={() => setShowNewForm(!showNewForm)} variant={showNewForm ? "outline" : "default"}>
+            {showNewForm ? <><X className="w-4 h-4" />Cancel</> : <><Plus className="w-4 h-4" />Add Template</>}
           </Button>
         }
       />
@@ -728,10 +514,7 @@ export default function TemplatesPage() {
           {showNewForm && (
             <NewTemplateForm
               stages={stages}
-              onCreated={() => {
-                setShowNewForm(false);
-                fetchData();
-              }}
+              onCreated={() => { setShowNewForm(false); fetchData(); }}
               onCancel={() => setShowNewForm(false)}
             />
           )}
@@ -740,19 +523,12 @@ export default function TemplatesPage() {
             <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
               <MessageSquare className="w-10 h-10 mb-3 opacity-40" />
               <p className="text-sm">No templates yet</p>
-              <p className="text-xs mt-1">
-                Create your first message template to get started.
-              </p>
+              <p className="text-xs mt-1">Create your first message template to get started.</p>
             </div>
           )}
 
           {templates.map((template) => (
-            <TemplateCard
-              key={template.id}
-              template={template}
-              stages={stages}
-              onSave={handleSave}
-            />
+            <TemplateCard key={template.id} template={template} stages={stages} onSave={handleSave} />
           ))}
         </div>
       </div>

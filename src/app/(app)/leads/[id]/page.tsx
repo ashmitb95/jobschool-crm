@@ -31,7 +31,10 @@ import {
   Globe,
   Calendar,
   MessageSquare,
+  Clock,
 } from "lucide-react";
+import { StageTransitionDialog } from "@/components/pipeline/stage-transition-dialog";
+import { LeadStageData } from "@/components/leads/lead-stage-data";
 
 interface Stage {
   id: string;
@@ -59,6 +62,7 @@ interface LeadDetail {
   source: string;
   sourceAdId: string | null;
   stageId: string;
+  pipelineId: string | null;
   notes: string | null;
   metadata: string | null;
   createdAt: string;
@@ -94,6 +98,14 @@ export default function LeadDetailPage({
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [changingStage, setChangingStage] = useState(false);
+  const [pendingTransition, setPendingTransition] = useState<{
+    leadId: string;
+    leadName: string;
+    fromStageId: string;
+    toStageId: string;
+    toStageName: string;
+    toStageColor: string;
+  } | null>(null);
 
   // Edit form state
   const [editName, setEditName] = useState("");
@@ -132,31 +144,29 @@ export default function LeadDetailPage({
     fetchLead();
   }, [fetchLead]);
 
-  // Fetch stages
+  // Fetch stages scoped to lead's pipeline
   useEffect(() => {
-    fetch("/api/stages")
+    if (!lead?.pipelineId) return;
+    fetch(`/api/stages?pipelineId=${lead.pipelineId}`)
       .then((res) => res.json())
       .then((data) => setStages(data))
       .catch(console.error);
-  }, []);
+  }, [lead?.pipelineId]);
 
-  async function handleStageChange(newStageId: string) {
+  function handleStageChange(newStageId: string) {
     if (!lead || newStageId === lead.stageId) return;
-    setChangingStage(true);
-    try {
-      const res = await fetch(`/api/leads/${id}/stage`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ stageId: newStageId }),
-      });
-      if (res.ok) {
-        await fetchLead();
-      }
-    } catch (err) {
-      console.error("Failed to change stage:", err);
-    } finally {
-      setChangingStage(false);
-    }
+
+    const targetStage = stages.find((s) => s.id === newStageId);
+    if (!targetStage) return;
+
+    setPendingTransition({
+      leadId: id,
+      leadName: lead.name,
+      fromStageId: lead.stageId,
+      toStageId: newStageId,
+      toStageName: targetStage.name,
+      toStageColor: targetStage.color,
+    });
   }
 
   async function handleSave() {
@@ -359,6 +369,28 @@ export default function LeadDetailPage({
               </CardContent>
             </Card>
 
+            {/* Stage Data */}
+            <LeadStageData leadId={id} />
+
+            {/* Activity Timeline */}
+            <Card>
+              <CardHeader>
+                <CardTitle className="text-base flex items-center gap-2">
+                  <Clock className="w-4 h-4" />
+                  Activity
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="text-center py-6 text-muted-foreground">
+                  <Clock className="w-8 h-8 mx-auto mb-2 opacity-40" />
+                  <p className="text-sm">Activity timeline coming soon</p>
+                  <p className="text-xs mt-1">
+                    Stage changes, messages, and notes will appear here.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+
             {/* Edit Form */}
             <Card>
               <CardHeader>
@@ -525,6 +557,24 @@ export default function LeadDetailPage({
           </div>
         </div>
       </div>
+
+      {pendingTransition && (
+        <StageTransitionDialog
+          open={!!pendingTransition}
+          onOpenChange={(open) => { if (!open) setPendingTransition(null); }}
+          leadId={pendingTransition.leadId}
+          leadName={pendingTransition.leadName}
+          fromStageId={pendingTransition.fromStageId}
+          toStageId={pendingTransition.toStageId}
+          toStageName={pendingTransition.toStageName}
+          toStageColor={pendingTransition.toStageColor}
+          onSuccess={() => {
+            setPendingTransition(null);
+            fetchLead(); // refresh lead data
+          }}
+          onCancel={() => setPendingTransition(null)}
+        />
+      )}
     </div>
   );
 }
