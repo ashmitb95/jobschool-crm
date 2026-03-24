@@ -26,7 +26,7 @@ export async function sendStageMessage(leadId: string, stageId: string) {
     phone: lead.phone,
     email: lead.email || "",
     stage: stage.name,
-    cv_link: process.env.CV_OPTIMISER_URL || "http://localhost:3000/cv",
+    cv_link: process.env.CV_OPTIMISER_URL || "http://localhost:3001/cv",
   };
 
   const renderedBody = renderTemplate(template.body, variables);

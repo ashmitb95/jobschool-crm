@@ -160,6 +160,9 @@ export async function DELETE(
     );
   }
 
+  // Clean up org references before deleting
+  const { auditLogs } = await import("@/lib/db/schema");
+  await db.delete(auditLogs).where(eq(auditLogs.orgId, orgId));
   await db.delete(organizations).where(eq(organizations.id, orgId));
 
   await logAudit({

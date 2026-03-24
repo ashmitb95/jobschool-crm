@@ -1,0 +1,35 @@
+{
+  "cookies": [
+    {
+      "name": "auth_token",
+      "value": "eTl4bnJweXB2Nzh3cHBucGp5dWhjNzhnOjE3NzM3MTg0MTUxMTE6c2J1dXd6bzFqaTBva3EyMDgzZ2ZuZjE3OjJjNTlkNTg0ZTI0NzEwYjExOWY2MWE2OTNhMGIwNGYwODVjYjBjZjk2YTM2MDc1ZjVjODA2ZDAwNzZlYTM5ZDI%3D",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1776310415.274,
+      "httpOnly": true,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "auth_user",
+      "value": "admin",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1776310415.274,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "auth_role",
+      "value": "admin",
+      "domain": "localhost",
+      "path": "/",
+      "expires": 1776310415.274,
+      "httpOnly": false,
+      "secure": false,
+      "sameSite": "Lax"
+    }
+  ],
+  "origins": []
+}

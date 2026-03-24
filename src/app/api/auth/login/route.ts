@@ -8,6 +8,7 @@ import { apiError, apiValidationError } from "@/lib/api-response";
 import { logAudit } from "@/lib/audit";
 
 export async function POST(request: NextRequest) {
+  try {
   const body = await request.json();
   const parsed = loginSchema.safeParse(body);
   if (!parsed.success) return apiValidationError(parsed.error);
@@ -51,4 +52,8 @@ export async function POST(request: NextRequest) {
   });
 
   return res;
+  } catch (err) {
+    console.error("Login error:", err);
+    return NextResponse.json({ success: false, error: { message: String(err) } }, { status: 500 });
+  }
 }
