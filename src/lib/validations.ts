@@ -49,7 +49,28 @@ export const updateOrgSchema = z.object({
       logoUrl: z.string().url().optional(),
       accentColor: z.string().optional(),
     }).optional(),
+    meta: z.object({
+      pageId: z.string().optional(),
+      pageAccessToken: z.string().optional(),
+      pageName: z.string().optional(),
+    }).optional(),
   }).optional(),
+});
+
+// ─── Meta Integration ──────────────────────────────────────────────────────
+
+export const updateMetaConnectionSchema = z.object({
+  pageId: z.string().min(1, "Page ID is required"),
+  pageAccessToken: z.string().min(1, "Page Access Token is required"),
+});
+
+export const updateFormMappingsSchema = z.object({
+  mappings: z.array(z.object({
+    formId: z.string().min(1),
+    formName: z.string().optional(),
+    pipelineId: z.string().min(1),
+  })),
+  migrate: z.boolean().optional(),
 });
 
 // ─── Pipelines ──────────────────────────────────────────────────────────────

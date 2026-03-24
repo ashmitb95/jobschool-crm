@@ -27,6 +27,7 @@ import {
   FileText,
 } from "lucide-react";
 import { StageFieldManager } from "@/components/settings/stage-field-manager";
+import { MetaFormMapper } from "@/components/settings/meta-form-mapper";
 import { PipelineSelector } from "@/components/pipeline/pipeline-selector";
 import { useAuth } from "@/lib/auth-context";
 
@@ -370,6 +371,9 @@ export default function SettingsPage() {
               <AddStageForm onCreated={fetchStages} pipelineId={selectedPipelineId} />
             </CardContent>
           </Card>
+
+          {/* ---------- Meta Lead Forms ---------- */}
+          <MetaFormMapper pipelines={pipelines} />
 
           {/* ---------- API Integrations ---------- */}
           <Card className="border-border">

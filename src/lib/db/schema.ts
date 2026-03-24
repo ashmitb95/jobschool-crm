@@ -175,6 +175,18 @@ export const stageTransitions = sqliteTable("stage_transitions", {
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
+// ─── Meta Integration Tables ────────────────────────────────────────────────
+
+export const metaFormMappings = sqliteTable("meta_form_mappings", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  orgId: text("org_id").notNull().references(() => organizations.id),
+  formId: text("form_id").notNull(),
+  formName: text("form_name"),
+  pipelineId: text("pipeline_id").notNull().references(() => pipelines.id, { onDelete: "cascade" }),
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 // ─── Relations ──────────────────────────────────────────────────────────────
 
 export const organizationsRelations = relations(organizations, ({ many }) => ({
@@ -182,6 +194,7 @@ export const organizationsRelations = relations(organizations, ({ many }) => ({
   pipelines: many(pipelines),
   messageTemplates: many(messageTemplates),
   auditLogs: many(auditLogs),
+  metaFormMappings: many(metaFormMappings),
 }));
 
 export const usersRelations = relations(users, ({ one, many }) => ({
@@ -195,6 +208,7 @@ export const pipelinesRelations = relations(pipelines, ({ one, many }) => ({
   stages: many(stages),
   leads: many(leads),
   users: many(userPipelines),
+  metaFormMappings: many(metaFormMappings),
 }));
 
 export const userPipelinesRelations = relations(userPipelines, ({ one }) => ({
@@ -260,4 +274,9 @@ export const leadStageDataRelations = relations(leadStageData, ({ one }) => ({
 export const stageTransitionsRelations = relations(stageTransitions, ({ one }) => ({
   fromStage: one(stages, { fields: [stageTransitions.fromStageId], references: [stages.id] }),
   toStage: one(stages, { fields: [stageTransitions.toStageId], references: [stages.id] }),
+}));
+
+export const metaFormMappingsRelations = relations(metaFormMappings, ({ one }) => ({
+  organization: one(organizations, { fields: [metaFormMappings.orgId], references: [organizations.id] }),
+  pipeline: one(pipelines, { fields: [metaFormMappings.pipelineId], references: [pipelines.id] }),
 }));

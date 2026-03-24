@@ -18,6 +18,11 @@ export interface OrgSettings {
     logoUrl?: string;
     accentColor?: string;
   };
+  meta?: {
+    pageId?: string;
+    pageAccessToken?: string;
+    pageName?: string;
+  };
 }
 
 export interface User {
