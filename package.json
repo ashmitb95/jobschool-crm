@@ -4,6 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "next dev --port 3001",
+    "dev:test": "dotenv -e .env.test -- next dev --port 3001",
+    "dev:prod": "dotenv -e .env -- next dev --port 3001",
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
@@ -54,6 +56,7 @@
     "@types/node": "^20",
     "@types/react": "^19",
     "@types/react-dom": "^19",
+    "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.9",
     "eslint": "^9",
     "eslint-config-next": "16.1.6",

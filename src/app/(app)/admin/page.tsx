@@ -62,6 +62,10 @@ export default function AdminPage() {
   const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
   const [deletePipelineId, setDeletePipelineId] = useState<string | null>(null);
 
+  // Loading states
+  const [creatingUser, setCreatingUser] = useState(false);
+  const [creatingPipe, setCreatingPipe] = useState(false);
+
   useEffect(() => {
     if (user && user.role !== "admin") {
       router.push("/pipeline");
@@ -91,19 +95,24 @@ export default function AdminPage() {
   useEffect(() => { fetchData(); }, [fetchData]);
 
   async function createUser() {
-    const res = await fetch("/api/admin/users", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newUser),
-    });
-    if (res.ok) {
-      toast.success("User created");
-      setShowCreate(false);
-      setNewUser({ username: "", password: "", displayName: "", email: "", role: "member" });
-      fetchData();
-    } else {
-      const d = await res.json();
-      toast.error(d.error?.message || "Failed");
+    setCreatingUser(true);
+    try {
+      const res = await fetch("/api/admin/users", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newUser),
+      });
+      if (res.ok) {
+        toast.success("User created");
+        setShowCreate(false);
+        setNewUser({ username: "", password: "", displayName: "", email: "", role: "member" });
+        fetchData();
+      } else {
+        const d = await res.json();
+        toast.error(d.error?.message || "Failed");
+      }
+    } finally {
+      setCreatingUser(false);
     }
   }
 
@@ -123,7 +132,8 @@ export default function AdminPage() {
   }
 
   async function createPipeline() {
-    const res = await fetch("/api/pipelines", {
+    setCreatingPipe(true);
+    try { const res = await fetch("/api/pipelines", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
@@ -142,6 +152,9 @@ export default function AdminPage() {
     } else {
       const d = await res.json();
       toast.error(d.error?.message || "Failed");
+    }
+    } finally {
+      setCreatingPipe(false);
     }
   }
 
@@ -222,7 +235,9 @@ export default function AdminPage() {
                         </SelectContent>
                       </Select>
                     </div>
-                    <Button onClick={createUser} className="w-full">Create User</Button>
+                    <Button onClick={createUser} className="w-full" disabled={creatingUser}>
+                      {creatingUser && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Create User
+                    </Button>
                   </div>
                 </SheetContent>
               </Sheet>
@@ -278,7 +293,9 @@ export default function AdminPage() {
                         pipelineNames={Object.fromEntries(pipelines.map(p => [p.id, p.name]))}
                       />
                     </div>
-                    <Button onClick={createPipeline} className="w-full">Create Pipeline</Button>
+                    <Button onClick={createPipeline} className="w-full" disabled={creatingPipe}>
+                      {creatingPipe && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Create Pipeline
+                    </Button>
                   </div>
                 </SheetContent>
               </Sheet>

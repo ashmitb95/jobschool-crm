@@ -59,6 +59,10 @@ export default function ManagePage() {
   // Delete org dialog
   const [deleteOrgId, setDeleteOrgId] = useState<string | null>(null);
 
+  // Loading states
+  const [creatingOrg, setCreatingOrg] = useState(false);
+  const [creatingAdmin, setCreatingAdmin] = useState(false);
+
   // Credentials dialog (after org creation)
   const [credentials, setCredentials] = useState<{ username: string; password: string } | null>(null);
   const [copiedField, setCopiedField] = useState<string | null>(null);
@@ -98,25 +102,29 @@ export default function ManagePage() {
   }
 
   async function createOrg() {
-    const res = await fetch("/api/manage/orgs", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newOrg),
-    });
-    if (res.ok) {
-      const d = await res.json();
-      setShowCreate(false);
-      setNewOrg({ name: "", slug: "" });
-      fetchOrgs();
-      // Show credentials dialog if admin was auto-created
-      if (d.data?.admin) {
-        setCredentials(d.data.admin);
+    setCreatingOrg(true);
+    try {
+      const res = await fetch("/api/manage/orgs", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(newOrg),
+      });
+      if (res.ok) {
+        const d = await res.json();
+        setShowCreate(false);
+        setNewOrg({ name: "", slug: "" });
+        fetchOrgs();
+        if (d.data?.admin) {
+          setCredentials(d.data.admin);
+        } else {
+          toast.success("Organization created");
+        }
       } else {
-        toast.success("Organization created");
+        const d = await res.json();
+        toast.error(d.error?.message || "Failed");
       }
-    } else {
-      const d = await res.json();
-      toast.error(d.error?.message || "Failed");
+    } finally {
+      setCreatingOrg(false);
     }
   }
 
@@ -134,20 +142,25 @@ export default function ManagePage() {
 
   async function createAdmin() {
     if (!selectedOrg) return;
-    const res = await fetch(`/api/manage/orgs/${selectedOrg.id}/users`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ ...newAdmin, role: "admin" }),
-    });
-    if (res.ok) {
-      toast.success("Admin user created");
-      setShowCreateAdmin(false);
-      setNewAdmin({ username: "", password: "", displayName: "", email: "" });
-      selectOrg(selectedOrg);
-      fetchOrgs();
-    } else {
-      const d = await res.json();
-      toast.error(d.error?.message || "Failed");
+    setCreatingAdmin(true);
+    try {
+      const res = await fetch(`/api/manage/orgs/${selectedOrg.id}/users`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ ...newAdmin, role: "admin" }),
+      });
+      if (res.ok) {
+        toast.success("Admin user created");
+        setShowCreateAdmin(false);
+        setNewAdmin({ username: "", password: "", displayName: "", email: "" });
+        selectOrg(selectedOrg);
+        fetchOrgs();
+      } else {
+        const d = await res.json();
+        toast.error(d.error?.message || "Failed");
+      }
+    } finally {
+      setCreatingAdmin(false);
     }
   }
 
@@ -182,7 +195,9 @@ export default function ManagePage() {
                   <div><Label>Display Name</Label><Input value={newAdmin.displayName} onChange={e => setNewAdmin({ ...newAdmin, displayName: e.target.value })} /></div>
                   <div><Label>Email</Label><Input type="email" value={newAdmin.email} onChange={e => setNewAdmin({ ...newAdmin, email: e.target.value })} /></div>
                   <div><Label>Password</Label><Input type="password" value={newAdmin.password} onChange={e => setNewAdmin({ ...newAdmin, password: e.target.value })} /></div>
-                  <Button onClick={createAdmin} className="w-full">Create Admin</Button>
+                  <Button onClick={createAdmin} className="w-full" disabled={creatingAdmin}>
+                    {creatingAdmin && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Create Admin
+                  </Button>
                 </div>
               </SheetContent>
             </Sheet>
@@ -241,7 +256,9 @@ export default function ManagePage() {
               <div className="space-y-4 mt-4">
                 <div><Label>Name</Label><Input value={newOrg.name} onChange={e => setNewOrg({ ...newOrg, name: e.target.value })} /></div>
                 <div><Label>Slug</Label><Input value={newOrg.slug} onChange={e => setNewOrg({ ...newOrg, slug: e.target.value })} placeholder="lowercase-with-hyphens" /></div>
-                <Button onClick={createOrg} className="w-full">Create Organization</Button>
+                <Button onClick={createOrg} className="w-full" disabled={creatingOrg}>
+                  {creatingOrg && <Loader2 className="w-4 h-4 animate-spin mr-1" />}Create Organization
+                </Button>
               </div>
             </SheetContent>
           </Sheet>

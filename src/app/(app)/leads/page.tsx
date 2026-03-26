@@ -237,8 +237,8 @@ function LeadsPageInner() {
         /* ── List View ── */
         <>
           {/* Filter Bar */}
-          <div className="px-8 py-4 border-b border-border flex flex-wrap items-center gap-3">
-            <div className="relative flex-1 min-w-[200px] max-w-sm">
+          <div className="px-4 sm:px-8 py-3 sm:py-4 border-b border-border flex flex-wrap items-center gap-2 sm:gap-3">
+            <div className="relative w-full sm:flex-1 sm:min-w-[200px] sm:max-w-sm">
               <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search by name, email, or phone..."
@@ -249,7 +249,7 @@ function LeadsPageInner() {
             </div>
 
             <Select value={stageFilter} onValueChange={setStageFilter}>
-              <SelectTrigger className="w-[160px]">
+              <SelectTrigger className="w-full sm:w-[160px]">
                 <SelectValue placeholder="All Stages" />
               </SelectTrigger>
               <SelectContent>
@@ -268,7 +268,7 @@ function LeadsPageInner() {
             </Select>
 
             <Select value={sourceFilter} onValueChange={setSourceFilter}>
-              <SelectTrigger className="w-[150px]">
+              <SelectTrigger className="w-full sm:w-[150px]">
                 <SelectValue placeholder="All Sources" />
               </SelectTrigger>
               <SelectContent>
@@ -278,7 +278,7 @@ function LeadsPageInner() {
               </SelectContent>
             </Select>
 
-            <div className="flex items-center gap-2">
+            <div className="hidden sm:flex items-center gap-2">
               <Input type="date" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} className="w-[140px] text-xs" />
               <span className="text-muted-foreground text-xs">to</span>
               <Input type="date" value={dateTo} onChange={(e) => setDateTo(e.target.value)} className="w-[140px] text-xs" />
@@ -286,7 +286,7 @@ function LeadsPageInner() {
           </div>
 
           {/* Table */}
-          <div className="flex-1 overflow-auto">
+          <div className="flex-1 overflow-x-auto overflow-y-auto">
             {loading ? (
               <div className="flex items-center justify-center py-20">
                 <Loader2 className="w-6 h-6 animate-spin text-muted-foreground" />
@@ -341,8 +341,8 @@ function LeadsPageInner() {
 
           {/* Pagination */}
           {pagination.totalPages > 1 && (
-            <div className="px-8 py-4 border-t border-border flex items-center justify-between">
-              <p className="text-sm text-muted-foreground">
+            <div className="px-4 sm:px-8 py-3 sm:py-4 border-t border-border flex flex-col sm:flex-row items-center justify-between gap-2">
+              <p className="text-xs sm:text-sm text-muted-foreground">
                 Showing {(pagination.page - 1) * pagination.limit + 1} to{" "}
                 {Math.min(pagination.page * pagination.limit, pagination.total)} of {pagination.total} leads
               </p>
