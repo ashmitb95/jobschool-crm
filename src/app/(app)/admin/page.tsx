@@ -25,6 +25,9 @@ import {
 } from "@/components/ui/sheet";
 import { Loader2, Plus, Trash2, KeyRound } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
+import { PromptDialog } from "@/components/ui/prompt-dialog";
+import { FormPicker } from "@/components/pipeline/form-picker";
 import type { Pipeline } from "@/types";
 
 interface OrgUser {
@@ -51,6 +54,13 @@ export default function AdminPage() {
   // Create pipeline form
   const [showCreatePipeline, setShowCreatePipeline] = useState(false);
   const [newPipeline, setNewPipeline] = useState({ name: "", description: "" });
+  const [newPipelineFormIds, setNewPipelineFormIds] = useState<string[]>([]);
+  const [newPipelineFormNames, setNewPipelineFormNames] = useState<Record<string, string>>({});
+
+  // Dialog state
+  const [deleteUserId, setDeleteUserId] = useState<string | null>(null);
+  const [resetPasswordUserId, setResetPasswordUserId] = useState<string | null>(null);
+  const [deletePipelineId, setDeletePipelineId] = useState<string | null>(null);
 
   useEffect(() => {
     if (user && user.role !== "admin") {
@@ -98,14 +108,11 @@ export default function AdminPage() {
   }
 
   async function deleteUser(userId: string) {
-    if (!confirm("Delete this user?")) return;
     const res = await fetch(`/api/admin/users/${userId}`, { method: "DELETE" });
     if (res.ok) { toast.success("User deleted"); fetchData(); }
   }
 
-  async function resetPassword(userId: string) {
-    const newPassword = prompt("Enter new password (min 6 chars):");
-    if (!newPassword || newPassword.length < 6) return;
+  async function resetPassword(userId: string, newPassword: string) {
     const res = await fetch(`/api/admin/users/${userId}/reset-password`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -119,12 +126,18 @@ export default function AdminPage() {
     const res = await fetch("/api/pipelines", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(newPipeline),
+      body: JSON.stringify({
+        ...newPipeline,
+        formIds: newPipelineFormIds.length > 0 ? newPipelineFormIds : undefined,
+        formNames: Object.keys(newPipelineFormNames).length > 0 ? newPipelineFormNames : undefined,
+      }),
     });
     if (res.ok) {
       toast.success("Pipeline created");
       setShowCreatePipeline(false);
       setNewPipeline({ name: "", description: "" });
+      setNewPipelineFormIds([]);
+      setNewPipelineFormNames({});
       fetchData();
     } else {
       const d = await res.json();
@@ -133,7 +146,6 @@ export default function AdminPage() {
   }
 
   async function deletePipeline(pipelineId: string) {
-    if (!confirm("Delete this pipeline? Only empty pipelines can be deleted.")) return;
     const res = await fetch(`/api/pipelines/${pipelineId}`, { method: "DELETE" });
     if (res.ok) { toast.success("Pipeline deleted"); fetchData(); }
     else {
@@ -231,11 +243,11 @@ export default function AdminPage() {
                     </div>
                   </div>
                   <div className="flex gap-1">
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => resetPassword(u.id)}>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => setResetPasswordUserId(u.id)}>
                       <KeyRound className="w-3.5 h-3.5" />
                     </Button>
                     {u.id !== user?.id && (
-                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deleteUser(u.id)}>
+                      <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeleteUserId(u.id)}>
                         <Trash2 className="w-3.5 h-3.5" />
                       </Button>
                     )}
@@ -257,6 +269,15 @@ export default function AdminPage() {
                   <div className="space-y-4 mt-4">
                     <div><Label>Name</Label><Input value={newPipeline.name} onChange={e => setNewPipeline({ ...newPipeline, name: e.target.value })} /></div>
                     <div><Label>Description</Label><Input value={newPipeline.description} onChange={e => setNewPipeline({ ...newPipeline, description: e.target.value })} /></div>
+                    <div>
+                      <Label>Associated Lead Forms</Label>
+                      <p className="text-xs text-muted-foreground mb-2">Select Meta lead forms to route into this pipeline.</p>
+                      <FormPicker
+                        selectedFormIds={newPipelineFormIds}
+                        onChange={(ids, names) => { setNewPipelineFormIds(ids); if (names) setNewPipelineFormNames(names); }}
+                        pipelineNames={Object.fromEntries(pipelines.map(p => [p.id, p.name]))}
+                      />
+                    </div>
                     <Button onClick={createPipeline} className="w-full">Create Pipeline</Button>
                   </div>
                 </SheetContent>
@@ -269,7 +290,7 @@ export default function AdminPage() {
                     <span className="text-sm font-medium">{p.name}</span>
                     {p.description && <p className="text-xs text-muted-foreground">{p.description}</p>}
                   </div>
-                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => deletePipeline(p.id)}>
+                  <Button variant="ghost" size="icon" className="h-8 w-8 text-destructive" onClick={() => setDeletePipelineId(p.id)}>
                     <Trash2 className="w-3.5 h-3.5" />
                   </Button>
                 </div>
@@ -317,6 +338,39 @@ export default function AdminPage() {
           </div>
         )}
       </div>
+
+      <ConfirmDialog
+        open={!!deleteUserId}
+        onOpenChange={(open) => { if (!open) setDeleteUserId(null); }}
+        title="Delete User"
+        description="Are you sure you want to delete this user? This action cannot be undone."
+        actionLabel="Delete"
+        variant="destructive"
+        onConfirm={() => { if (deleteUserId) deleteUser(deleteUserId); }}
+      />
+
+      <PromptDialog
+        open={!!resetPasswordUserId}
+        onOpenChange={(open) => { if (!open) setResetPasswordUserId(null); }}
+        title="Reset Password"
+        description="Enter a new password for this user."
+        inputLabel="New Password"
+        inputType="password"
+        placeholder="Min 6 characters"
+        actionLabel="Reset Password"
+        validate={(v) => v.length < 6 ? "Password must be at least 6 characters" : null}
+        onConfirm={(v) => { if (resetPasswordUserId) resetPassword(resetPasswordUserId, v); }}
+      />
+
+      <ConfirmDialog
+        open={!!deletePipelineId}
+        onOpenChange={(open) => { if (!open) setDeletePipelineId(null); }}
+        title="Delete Pipeline"
+        description="Delete this pipeline? Only empty pipelines can be deleted."
+        actionLabel="Delete"
+        variant="destructive"
+        onConfirm={() => { if (deletePipelineId) deletePipeline(deletePipelineId); }}
+      />
     </div>
   );
 }

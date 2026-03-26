@@ -94,6 +94,7 @@ export async function POST(request: NextRequest) {
     displayName,
     role,
     orgId: admin.orgId,
+    mustChangePassword: true,
     createdAt: now,
     updatedAt: now,
   });

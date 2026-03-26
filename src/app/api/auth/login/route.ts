@@ -29,7 +29,9 @@ export async function POST(request: NextRequest) {
 
   const token = await createSession(user.id);
 
-  const redirect = user.role === "super_admin" ? "/manage" : "/pipeline";
+  const redirect = user.mustChangePassword
+    ? "/change-password"
+    : user.role === "super_admin" ? "/manage" : "/leads";
 
   const res = NextResponse.json({
     success: true,
@@ -37,6 +39,7 @@ export async function POST(request: NextRequest) {
       username: user.username,
       displayName: user.displayName,
       role: user.role,
+      mustChangePassword: user.mustChangePassword,
       redirect,
     },
   });

@@ -18,6 +18,21 @@ export interface OrgSettings {
     logoUrl?: string;
     accentColor?: string;
   };
+  meta?: {
+    pageId?: string;
+    pageAccessToken?: string;
+    pageName?: string;
+  };
+  whatsapp?: {
+    phoneNumberId?: string;
+    accessToken?: string;
+  };
+  email?: {
+    provider?: "resend" | "sendgrid";
+    apiKey?: string;
+    fromAddress?: string;
+    fromName?: string;
+  };
 }
 
 export interface User {
@@ -61,6 +76,7 @@ export interface AuthUser {
   displayName: string;
   role: UserRole;
   orgId: string | null;
+  mustChangePassword: boolean;
 }
 
 export interface AuthContext {
@@ -114,7 +130,7 @@ export type ApiResponse<T = unknown> = ApiSuccessResponse<T> | ApiErrorResponse;
 // ─── Business Types ─────────────────────────────────────────────────────────
 
 export type LeadSource = "meta_ads" | "manual" | "website" | "referral";
-export type MessageChannel = "whatsapp" | "sms";
+export type MessageChannel = "whatsapp" | "email" | "sms";
 export type MessageStatus = "pending" | "sent" | "delivered" | "read" | "failed";
 export type MessageDirection = "outbound" | "inbound";
 

@@ -95,15 +95,17 @@ export async function PUT(request: NextRequest) {
 
   for (const pos of positions) {
     if (pos.id) {
-      // Verify stage belongs to accessible pipeline
-      if (!pipelineId) {
-        const [stage] = await db.select({ pipelineId: stages.pipelineId }).from(stages).where(eq(stages.id, pos.id)).limit(1);
-        if (stage?.pipelineId) {
-          const hasAccess = await userHasPipelineAccess(user.id, user.role, user.orgId, stage.pipelineId);
-          if (!hasAccess) {
-            return apiForbidden(`No access to stage ${pos.id}`);
-          }
-        }
+      // Always verify stage belongs to an accessible pipeline
+      const [stage] = await db.select({ pipelineId: stages.pipelineId }).from(stages).where(eq(stages.id, pos.id)).limit(1);
+      if (!stage?.pipelineId) {
+        return apiError(`Stage ${pos.id} not found`, 404);
+      }
+      if (pipelineId && stage.pipelineId !== pipelineId) {
+        return apiForbidden(`Stage ${pos.id} does not belong to specified pipeline`);
+      }
+      const hasAccess = await userHasPipelineAccess(user.id, user.role, user.orgId, stage.pipelineId);
+      if (!hasAccess) {
+        return apiForbidden(`No access to stage ${pos.id}`);
       }
 
       await db

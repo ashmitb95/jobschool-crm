@@ -46,6 +46,8 @@ export function StageTransitionDialog({
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
+  const [autoSubmitting, setAutoSubmitting] = useState(false);
+
   const fetchFields = useCallback(async () => {
     setLoading(true);
     setApiError(null);
@@ -65,6 +67,7 @@ export function StageTransitionDialog({
 
       // If no fields, auto-submit immediately
       if (data.length === 0) {
+        setAutoSubmitting(true);
         await submitTransition({});
       }
     } catch {
@@ -137,8 +140,8 @@ export function StageTransitionDialog({
     onOpenChange(false);
   }
 
-  // Don't show dialog if no fields (auto-submit handles it)
-  if (fields.length === 0 && !loading && !apiError) {
+  // Don't show dialog if no fields and auto-submit completed successfully
+  if (fields.length === 0 && !loading && !apiError && !autoSubmitting && !submitting) {
     return null;
   }
 

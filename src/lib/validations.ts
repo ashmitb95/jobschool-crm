@@ -49,7 +49,38 @@ export const updateOrgSchema = z.object({
       logoUrl: z.string().url().optional(),
       accentColor: z.string().optional(),
     }).optional(),
+    meta: z.object({
+      pageId: z.string().optional(),
+      pageAccessToken: z.string().optional(),
+      pageName: z.string().optional(),
+    }).optional(),
+    whatsapp: z.object({
+      phoneNumberId: z.string().optional(),
+      accessToken: z.string().optional(),
+    }).optional(),
+    email: z.object({
+      provider: z.enum(["resend", "sendgrid"]).optional(),
+      apiKey: z.string().optional(),
+      fromAddress: z.string().optional(),
+      fromName: z.string().optional(),
+    }).optional(),
   }).optional(),
+});
+
+// ─── Meta Integration ──────────────────────────────────────────────────────
+
+export const updateMetaConnectionSchema = z.object({
+  pageId: z.string().min(1, "Page ID is required"),
+  pageAccessToken: z.string().min(1, "Page Access Token is required"),
+});
+
+export const updateFormMappingsSchema = z.object({
+  mappings: z.array(z.object({
+    formId: z.string().min(1),
+    formName: z.string().optional(),
+    pipelineId: z.string().min(1),
+  })),
+  migrate: z.boolean().optional(),
 });
 
 // ─── Pipelines ──────────────────────────────────────────────────────────────
@@ -119,8 +150,10 @@ export const moveLeadSchema = z.object({
 export const createTemplateSchema = z.object({
   name: z.string().min(1),
   body: z.string().min(1),
-  channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+  channel: z.enum(["whatsapp", "email", "sms"]).default("whatsapp"),
   attachmentUrl: z.string().url().optional(),
   waTemplateName: z.string().optional(),
   waTemplateLanguage: z.string().optional(),
+  emailTemplateId: z.string().optional(),
+  subject: z.string().optional(),
 });

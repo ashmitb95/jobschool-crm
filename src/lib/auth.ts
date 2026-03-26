@@ -64,6 +64,7 @@ export async function getSessionUser(request: NextRequest): Promise<AuthUser | n
       displayName: users.displayName,
       role: users.role,
       orgId: users.orgId,
+      mustChangePassword: users.mustChangePassword,
       deletedAt: users.deletedAt,
     })
     .from(sessions)
@@ -88,6 +89,7 @@ export async function getSessionUser(request: NextRequest): Promise<AuthUser | n
     displayName: session.displayName,
     role: session.role as AuthUser["role"],
     orgId: session.orgId,
+    mustChangePassword: session.mustChangePassword,
   };
 }
 

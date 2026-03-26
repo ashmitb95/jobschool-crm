@@ -90,8 +90,7 @@ export async function PUT(request: NextRequest) {
       await db.delete(stageTransitions).where(inArray(stageTransitions.fromStageId, stageIds));
     }
   } else {
-    // Fallback: delete all (backward compat) — only if user has pipeline access to all
-    await db.delete(stageTransitions);
+    return apiError("pipelineId is required", 400);
   }
 
   // Insert new transitions

@@ -43,10 +43,13 @@ export default function LoginPage() {
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="w-full max-w-sm space-y-6 rounded-lg border border-border bg-card p-8 shadow-sm">
-        <div className="space-y-1 text-center">
-          <h1 className="text-2xl font-bold tracking-tight text-foreground">
-            JobSchool CRM
+      <div className="w-full max-w-sm space-y-8 rounded-xl border border-border bg-card p-8 shadow-lg shadow-black/20">
+        <div className="space-y-2 text-center">
+          <div className="mx-auto mb-4 w-10 h-10 rounded-full bg-primary/15 flex items-center justify-center">
+            <div className="w-5 h-5 rounded-full bg-primary" />
+          </div>
+          <h1 className="text-2xl font-semibold tracking-tight text-foreground font-serif">
+            JobSchool
           </h1>
           <p className="text-sm text-muted-foreground">
             Sign in to your account
