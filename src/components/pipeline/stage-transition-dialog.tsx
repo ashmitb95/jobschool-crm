@@ -46,43 +46,6 @@ export function StageTransitionDialog({
   const [submitting, setSubmitting] = useState(false);
   const [apiError, setApiError] = useState<string | null>(null);
 
-  const [autoSubmitting, setAutoSubmitting] = useState(false);
-
-  const fetchFields = useCallback(async () => {
-    setLoading(true);
-    setApiError(null);
-    try {
-      const res = await fetch(`/api/stages/${toStageId}/fields`);
-      if (!res.ok) throw new Error("Failed to fetch fields");
-      const data: StageField[] = await res.json();
-      setFields(data);
-
-      // Initialize default values
-      const defaults: Record<string, string> = {};
-      for (const f of data) {
-        defaults[f.fieldKey] = f.fieldType === "checkbox" ? "false" : "";
-      }
-      setValues(defaults);
-      setErrors({});
-
-      // If no fields, auto-submit immediately
-      if (data.length === 0) {
-        setAutoSubmitting(true);
-        await submitTransition({});
-      }
-    } catch {
-      setApiError("Could not load stage fields");
-    } finally {
-      setLoading(false);
-    }
-  }, [toStageId]); // eslint-disable-line react-hooks/exhaustive-deps
-
-  useEffect(() => {
-    if (open && toStageId) {
-      fetchFields();
-    }
-  }, [open, toStageId, fetchFields]);
-
   async function submitTransition(fieldValues: Record<string, string>) {
     setSubmitting(true);
     setApiError(null);
@@ -101,6 +64,7 @@ export function StageTransitionDialog({
             fieldErrors[mf.fieldKey] = "This field is required";
           }
           setErrors(fieldErrors);
+          setSubmitting(false);
           return;
         }
         throw new Error(data.error || "Failed to move lead");
@@ -115,8 +79,46 @@ export function StageTransitionDialog({
     }
   }
 
+  useEffect(() => {
+    if (!open || !toStageId) return;
+
+    let cancelled = false;
+    setLoading(true);
+    setApiError(null);
+    setFields([]);
+    setValues({});
+    setErrors({});
+
+    (async () => {
+      try {
+        const res = await fetch(`/api/stages/${toStageId}/fields`);
+        if (!res.ok || cancelled) return;
+        const data: StageField[] = await res.json();
+        if (cancelled) return;
+
+        setFields(data);
+
+        if (data.length === 0) {
+          // No fields — auto-submit directly
+          await submitTransition({});
+        } else {
+          const defaults: Record<string, string> = {};
+          for (const f of data) {
+            defaults[f.fieldKey] = f.fieldType === "checkbox" ? "false" : "";
+          }
+          setValues(defaults);
+        }
+      } catch {
+        if (!cancelled) setApiError("Could not load stage fields");
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+
+    return () => { cancelled = true; };
+  }, [open, toStageId]); // eslint-disable-line react-hooks/exhaustive-deps
+
   function handleSubmit() {
-    // Client-side validation
     const newErrors: Record<string, string> = {};
     for (const field of fields) {
       if (field.required) {
@@ -126,23 +128,16 @@ export function StageTransitionDialog({
         }
       }
     }
-
     if (Object.keys(newErrors).length > 0) {
       setErrors(newErrors);
       return;
     }
-
     submitTransition(values);
   }
 
   function handleCancel() {
     onCancel();
     onOpenChange(false);
-  }
-
-  // Don't show dialog if no fields and auto-submit completed successfully
-  if (fields.length === 0 && !loading && !apiError && !autoSubmitting && !submitting) {
-    return null;
   }
 
   return (
@@ -160,48 +155,58 @@ export function StageTransitionDialog({
             </span>
           </DialogTitle>
           <DialogDescription>
-            Fill in the required fields for <span className="font-medium text-foreground">{leadName}</span>
+            {fields.length > 0
+              ? <>Fill in the required fields for <span className="font-medium text-foreground">{leadName}</span></>
+              : <>Moving <span className="font-medium text-foreground">{leadName}</span>...</>
+            }
           </DialogDescription>
         </DialogHeader>
 
-        {loading ? (
+        {(loading || (fields.length === 0 && submitting)) ? (
           <div className="flex items-center justify-center py-8">
             <Loader2 className="w-5 h-5 animate-spin text-muted-foreground" />
           </div>
-        ) : (
-          <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
-            {fields.map((field) => (
-              <StageFieldRenderer
-                key={field.id}
-                field={field}
-                value={values[field.fieldKey] || ""}
-                onChange={(v) => {
-                  setValues((prev) => ({ ...prev, [field.fieldKey]: v }));
-                  setErrors((prev) => {
-                    const next = { ...prev };
-                    delete next[field.fieldKey];
-                    return next;
-                  });
-                }}
-                error={errors[field.fieldKey]}
-              />
-            ))}
-          </div>
-        )}
+        ) : fields.length > 0 ? (
+          <>
+            <div className="space-y-4 py-2 max-h-[60vh] overflow-y-auto">
+              {fields.map((field) => (
+                <StageFieldRenderer
+                  key={field.id}
+                  field={field}
+                  value={values[field.fieldKey] || ""}
+                  onChange={(v) => {
+                    setValues((prev) => ({ ...prev, [field.fieldKey]: v }));
+                    setErrors((prev) => {
+                      const next = { ...prev };
+                      delete next[field.fieldKey];
+                      return next;
+                    });
+                  }}
+                  error={errors[field.fieldKey]}
+                />
+              ))}
+            </div>
 
-        {apiError && (
-          <p className="text-sm text-destructive">{apiError}</p>
-        )}
+            {apiError && <p className="text-sm text-destructive">{apiError}</p>}
 
-        <DialogFooter>
-          <Button variant="outline" onClick={handleCancel} disabled={submitting}>
-            Cancel
-          </Button>
-          <Button onClick={handleSubmit} disabled={submitting || loading}>
-            {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
-            Confirm Move
-          </Button>
-        </DialogFooter>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancel} disabled={submitting}>
+                Cancel
+              </Button>
+              <Button onClick={handleSubmit} disabled={submitting}>
+                {submitting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : null}
+                Confirm Move
+              </Button>
+            </DialogFooter>
+          </>
+        ) : apiError ? (
+          <>
+            <p className="text-sm text-destructive py-4">{apiError}</p>
+            <DialogFooter>
+              <Button variant="outline" onClick={handleCancel}>Close</Button>
+            </DialogFooter>
+          </>
+        ) : null}
       </DialogContent>
     </Dialog>
   );

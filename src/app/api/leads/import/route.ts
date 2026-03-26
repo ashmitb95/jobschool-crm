@@ -286,6 +286,13 @@ export async function POST(request: NextRequest) {
     metadataFields.importedAt = now;
     metadataFields.originalRow = String(rowNum);
 
+    // Parse created date if provided, fall back to now
+    let leadCreatedAt = now;
+    if (coreFields.createdAt) {
+      const parsed = new Date(coreFields.createdAt);
+      if (!isNaN(parsed.getTime())) leadCreatedAt = parsed.toISOString();
+    }
+
     batch.push({
       id: createId(),
       name,
@@ -296,7 +303,7 @@ export async function POST(request: NextRequest) {
       pipelineId: rowPipelineId,
       ownerId,
       metadata: JSON.stringify(metadataFields),
-      createdAt: now,
+      createdAt: leadCreatedAt,
       updatedAt: now,
     });
 

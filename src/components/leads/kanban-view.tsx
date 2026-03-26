@@ -20,7 +20,7 @@ import {
 import { useDroppable } from "@dnd-kit/core";
 import { CSS } from "@dnd-kit/utilities";
 import { Badge } from "@/components/ui/badge";
-import { Phone, GripVertical, Loader2 } from "lucide-react";
+import { Phone, GripVertical, Loader2, ChevronLeft, ChevronRight } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { StageTransitionDialog } from "@/components/pipeline/stage-transition-dialog";
 
@@ -144,12 +144,20 @@ function StageColumn({
   isDragging,
   isValidTarget,
   isSource,
+  canMoveLeft,
+  canMoveRight,
+  onMoveLeft,
+  onMoveRight,
 }: {
   stage: Stage;
   leads: Lead[];
   isDragging: boolean;
   isValidTarget: boolean;
   isSource: boolean;
+  canMoveLeft: boolean;
+  canMoveRight: boolean;
+  onMoveLeft: () => void;
+  onMoveRight: () => void;
 }) {
   const leadIds = useMemo(() => leads.map((l) => l.id), [leads]);
 
@@ -167,12 +175,26 @@ function StageColumn({
 
   return (
     <div className={columnClass}>
-      <div className="flex items-center gap-2 px-3 py-2.5 mb-2">
+      <div className="flex items-center gap-1.5 px-2 py-2.5 mb-2 group/header">
+        <button
+          onClick={onMoveLeft}
+          disabled={!canMoveLeft}
+          className="p-0.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-0 opacity-0 group-hover/header:opacity-100 transition-opacity"
+        >
+          <ChevronLeft className="w-3.5 h-3.5" />
+        </button>
         <div className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: stage.color }} />
-        <h3 className="text-sm font-semibold text-foreground truncate">{stage.name}</h3>
-        <span className="ml-auto text-xs font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5">
+        <h3 className="text-sm font-semibold text-foreground truncate flex-1">{stage.name}</h3>
+        <span className="text-xs font-medium text-muted-foreground bg-muted rounded-full px-2 py-0.5">
           {leads.length}
         </span>
+        <button
+          onClick={onMoveRight}
+          disabled={!canMoveRight}
+          className="p-0.5 rounded text-muted-foreground hover:text-foreground disabled:opacity-0 opacity-0 group-hover/header:opacity-100 transition-opacity"
+        >
+          <ChevronRight className="w-3.5 h-3.5" />
+        </button>
       </div>
       <div className={dropZoneClass}>
         <SortableContext items={leadIds} strategy={verticalListSortingStrategy}>
@@ -319,6 +341,31 @@ export function KanbanView({ pipelineId }: KanbanViewProps) {
     });
   }
 
+  // Stage reordering
+  async function handleReorderStage(stageId: string, direction: "left" | "right") {
+    const sorted = [...stages].sort((a, b) => a.order - b.order);
+    const idx = sorted.findIndex((s) => s.id === stageId);
+    if (idx < 0) return;
+    const swapIdx = direction === "left" ? idx - 1 : idx + 1;
+    if (swapIdx < 0 || swapIdx >= sorted.length) return;
+
+    // Swap orders
+    const newStages = [...sorted];
+    const tmpOrder = newStages[idx].order;
+    newStages[idx] = { ...newStages[idx], order: newStages[swapIdx].order };
+    newStages[swapIdx] = { ...newStages[swapIdx], order: tmpOrder };
+    setStages(newStages);
+
+    // Persist
+    await fetch("/api/stages", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        stages: newStages.map((s) => ({ id: s.id, order: s.order })),
+      }),
+    });
+  }
+
   if (loading) {
     return (
       <div className="flex-1 flex items-center justify-center">
@@ -338,7 +385,7 @@ export function KanbanView({ pipelineId }: KanbanViewProps) {
           onDragEnd={handleDragEnd}
         >
           <div className="flex gap-4 h-full">
-            {stages.map((stage) => {
+            {[...stages].sort((a, b) => a.order - b.order).map((stage, idx) => {
               const dragging = !!activeLead;
               const sourceStageId = activeLead
                 ? leadsSnapshotRef.current.find((l) => l.id === activeLead.id)?.stageId ?? activeLead.stageId
@@ -351,6 +398,10 @@ export function KanbanView({ pipelineId }: KanbanViewProps) {
                   isDragging={dragging}
                   isValidTarget={dragging && validDropStageIds.has(stage.id)}
                   isSource={dragging && stage.id === sourceStageId}
+                  canMoveLeft={idx > 0}
+                  canMoveRight={idx < stages.length - 1}
+                  onMoveLeft={() => handleReorderStage(stage.id, "left")}
+                  onMoveRight={() => handleReorderStage(stage.id, "right")}
                 />
               );
             })}

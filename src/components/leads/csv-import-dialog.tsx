@@ -29,6 +29,7 @@ const FIELD_OPTIONS = [
   { value: "stage", label: "Stage" },
   { value: "owner", label: "Owner" },
   { value: "formName", label: "Form" },
+  { value: "createdAt", label: "Created Date" },
   { value: "metadata", label: "Keep as metadata" },
   { value: "skip", label: "Skip" },
 ];
@@ -41,6 +42,7 @@ const AUTO_MAP: Record<string, string> = {
   source: "source",
   stage: "stage",
   form: "formName", "form name": "formName",
+  created: "createdAt", "created at": "createdAt", "created date": "createdAt", date: "createdAt",
   owner: "owner", "assigned to": "owner", "assignee": "owner",
   // Columns that don't match a core field get kept as metadata
   channel: "metadata", labels: "metadata",
