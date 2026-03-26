@@ -3,7 +3,7 @@ import { db } from "@/lib/db";
 import { messages, leads } from "@/lib/db/schema";
 import { eq, like } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
-import { verifyWebhookSignature } from "@/lib/whatsapp";
+import { verifyWebhookSignature } from "@/lib/channels/whatsapp";
 
 export async function GET(req: NextRequest) {
   const params = req.nextUrl.searchParams;

@@ -54,6 +54,16 @@ export const updateOrgSchema = z.object({
       pageAccessToken: z.string().optional(),
       pageName: z.string().optional(),
     }).optional(),
+    whatsapp: z.object({
+      phoneNumberId: z.string().optional(),
+      accessToken: z.string().optional(),
+    }).optional(),
+    email: z.object({
+      provider: z.enum(["resend", "sendgrid"]).optional(),
+      apiKey: z.string().optional(),
+      fromAddress: z.string().optional(),
+      fromName: z.string().optional(),
+    }).optional(),
   }).optional(),
 });
 
@@ -140,8 +150,10 @@ export const moveLeadSchema = z.object({
 export const createTemplateSchema = z.object({
   name: z.string().min(1),
   body: z.string().min(1),
-  channel: z.enum(["whatsapp", "sms"]).default("whatsapp"),
+  channel: z.enum(["whatsapp", "email", "sms"]).default("whatsapp"),
   attachmentUrl: z.string().url().optional(),
   waTemplateName: z.string().optional(),
   waTemplateLanguage: z.string().optional(),
+  emailTemplateId: z.string().optional(),
+  subject: z.string().optional(),
 });

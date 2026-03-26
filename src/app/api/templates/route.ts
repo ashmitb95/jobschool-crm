@@ -24,6 +24,8 @@ export async function GET(request: NextRequest) {
       attachmentUrl: messageTemplates.attachmentUrl,
       waTemplateName: messageTemplates.waTemplateName,
       waTemplateLanguage: messageTemplates.waTemplateLanguage,
+      emailTemplateId: messageTemplates.emailTemplateId,
+      subject: messageTemplates.subject,
       createdAt: messageTemplates.createdAt,
       updatedAt: messageTemplates.updatedAt,
       stageId: stages.id,
@@ -52,7 +54,7 @@ export async function POST(request: NextRequest) {
     return apiValidationError(parsed.error);
   }
 
-  const { name, body: templateBody, channel, attachmentUrl, waTemplateName, waTemplateLanguage } = parsed.data;
+  const { name, body: templateBody, channel, attachmentUrl, waTemplateName, waTemplateLanguage, emailTemplateId, subject } = parsed.data;
   const stageId = body.stageId; // stageId is not in the Zod schema but used for linking
 
   const id = createId();
@@ -63,11 +65,19 @@ export async function POST(request: NextRequest) {
     attachmentUrl: attachmentUrl || null,
     waTemplateName: waTemplateName || null,
     waTemplateLanguage: waTemplateLanguage || "en",
+    emailTemplateId: emailTemplateId || null,
+    subject: subject || null,
     orgId: user.orgId,
     createdAt: now, updatedAt: now,
   });
 
   if (stageId) {
+    const [targetStage] = await db.select({ pipelineId: stages.pipelineId }).from(stages).where(eq(stages.id, stageId)).limit(1);
+    if (targetStage?.pipelineId) {
+      const { userHasPipelineAccess } = await import("@/lib/auth");
+      const hasAccess = await userHasPipelineAccess(user.id, user.role, user.orgId, targetStage.pipelineId);
+      if (!hasAccess) return apiError("Cannot link template to this stage", 403);
+    }
     await db.update(stages).set({ templateId: id }).where(eq(stages.id, stageId));
   }
 
@@ -88,7 +98,7 @@ export async function PATCH(request: NextRequest) {
   if (user instanceof NextResponse) return user;
 
   const reqBody = await request.json();
-  const { id, name, body: templateBody, channel, attachmentUrl, stageId, waTemplateName, waTemplateLanguage } = reqBody;
+  const { id, name, body: templateBody, channel, attachmentUrl, stageId, waTemplateName, waTemplateLanguage, emailTemplateId, subject } = reqBody;
 
   if (!id) {
     return apiError("Template id is required", 400);
@@ -113,12 +123,20 @@ export async function PATCH(request: NextRequest) {
   if (attachmentUrl !== undefined) updates.attachmentUrl = attachmentUrl;
   if (waTemplateName !== undefined) updates.waTemplateName = waTemplateName;
   if (waTemplateLanguage !== undefined) updates.waTemplateLanguage = waTemplateLanguage;
+  if (emailTemplateId !== undefined) updates.emailTemplateId = emailTemplateId;
+  if (subject !== undefined) updates.subject = subject;
 
   await db.update(messageTemplates).set(updates).where(eq(messageTemplates.id, id));
 
   if (stageId !== undefined) {
     await db.update(stages).set({ templateId: null }).where(eq(stages.templateId, id));
     if (stageId) {
+      const [targetStage] = await db.select({ pipelineId: stages.pipelineId }).from(stages).where(eq(stages.id, stageId)).limit(1);
+      if (targetStage?.pipelineId) {
+        const { userHasPipelineAccess } = await import("@/lib/auth");
+        const hasAccess = await userHasPipelineAccess(user.id, user.role, user.orgId, targetStage.pipelineId);
+        if (!hasAccess) return apiError("Cannot link template to this stage", 403);
+      }
       await db.update(stages).set({ templateId: id }).where(eq(stages.id, stageId));
     }
   }

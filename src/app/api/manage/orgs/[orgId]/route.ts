@@ -128,7 +128,7 @@ export async function PATCH(
   });
 }
 
-// DELETE /api/manage/orgs/[orgId] — Delete org (only if no users exist)
+// DELETE /api/manage/orgs/[orgId] — Soft-delete (archive) org
 export async function DELETE(
   request: NextRequest,
   { params }: { params: Promise<{ orgId: string }> }
@@ -138,41 +138,37 @@ export async function DELETE(
 
   const { orgId } = await params;
 
-  // Verify org exists
   const [org] = await db
     .select()
     .from(organizations)
-    .where(eq(organizations.id, orgId))
+    .where(and(eq(organizations.id, orgId), isNull(organizations.deletedAt)))
     .limit(1);
 
   if (!org) return apiNotFound("Organization not found");
 
-  // Check if users exist in this org
-  const [userResult] = await db
-    .select({ count: count() })
-    .from(users)
-    .where(eq(users.orgId, orgId));
+  const now = new Date().toISOString();
 
-  if (userResult && userResult.count > 0) {
-    return apiError(
-      `Cannot delete organization: ${userResult.count} user(s) still belong to it`,
-      409
-    );
+  // Soft-delete the org
+  await db.update(organizations).set({ deletedAt: now, updatedAt: now }).where(eq(organizations.id, orgId));
+
+  // Soft-delete all org users (blocks login)
+  await db.update(users).set({ deletedAt: now, updatedAt: now }).where(eq(users.orgId, orgId));
+
+  // Invalidate all sessions for org users
+  const { sessions } = await import("@/lib/db/schema");
+  const orgUsers = await db.select({ id: users.id }).from(users).where(eq(users.orgId, orgId));
+  for (const u of orgUsers) {
+    await db.delete(sessions).where(eq(sessions.userId, u.id));
   }
-
-  // Clean up org references before deleting
-  const { auditLogs } = await import("@/lib/db/schema");
-  await db.delete(auditLogs).where(eq(auditLogs.orgId, orgId));
-  await db.delete(organizations).where(eq(organizations.id, orgId));
 
   await logAudit({
     userId: auth.id,
     orgId: null,
-    action: "org.deleted",
+    action: "org.archived",
     entityType: "organization",
     entityId: orgId,
     metadata: { name: org.name, slug: org.slug },
   });
 
-  return apiSuccess({ deleted: true });
+  return apiSuccess({ archived: true });
 }

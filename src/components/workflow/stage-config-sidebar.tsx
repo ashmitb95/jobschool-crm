@@ -33,6 +33,7 @@ import {
   ChevronDown,
   ChevronUp,
 } from "lucide-react";
+import { toast } from "sonner";
 
 /* ---------- types ---------- */
 
@@ -41,6 +42,15 @@ interface Template {
   name: string;
   body: string;
   channel: string;
+  emailTemplateId?: string | null;
+  subject?: string | null;
+}
+
+interface RegisteredEmailTemplate {
+  id: string;
+  name: string;
+  filename: string;
+  subject: string;
 }
 
 interface StageData {
@@ -114,7 +124,12 @@ export function StageConfigSidebar({
   const [newTplName, setNewTplName] = useState("");
   const [newTplBody, setNewTplBody] = useState("");
   const [newTplChannel, setNewTplChannel] = useState("whatsapp");
+  const [newTplEmailTemplateId, setNewTplEmailTemplateId] = useState("");
+  const [newTplSubject, setNewTplSubject] = useState("");
   const [creatingTpl, setCreatingTpl] = useState(false);
+
+  // Registered email templates (from super admin)
+  const [emailTemplates, setEmailTemplates] = useState<RegisteredEmailTemplate[]>([]);
 
   // Edit template inline
   const [showEditTemplate, setShowEditTemplate] = useState(false);
@@ -136,10 +151,11 @@ export function StageConfigSidebar({
     if (!stageId) return;
     setLoading(true);
     try {
-      const [stageRes, templatesRes, fieldsRes] = await Promise.all([
+      const [stageRes, templatesRes, fieldsRes, emailTplRes] = await Promise.all([
         fetch(`/api/stages/${stageId}`),
         fetch("/api/templates"),
         fetch(`/api/stages/${stageId}/fields`),
+        fetch("/api/manage/email-templates"),
       ]);
 
       if (stageRes.ok) {
@@ -160,7 +176,14 @@ export function StageConfigSidebar({
         const tpls = await templatesRes.json();
         setAllTemplates(tpls.map((t: Template & Record<string, unknown>) => ({
           id: t.id, name: t.name, body: t.body, channel: t.channel,
+          emailTemplateId: t.emailTemplateId as string | null,
+          subject: t.subject as string | null,
         })));
+      }
+
+      if (emailTplRes.ok) {
+        const d = await emailTplRes.json();
+        setEmailTemplates(d.success ? d.data : []);
       }
 
       if (fieldsRes.ok) {
@@ -247,9 +270,11 @@ export function StageConfigSidebar({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: newTplName,
-          body: newTplBody,
+          body: newTplBody || (newTplChannel === "email" ? "Email template" : ""),
           channel: newTplChannel,
           stageId,
+          ...(newTplChannel === "email" && newTplEmailTemplateId ? { emailTemplateId: newTplEmailTemplateId } : {}),
+          ...(newTplChannel === "email" && newTplSubject ? { subject: newTplSubject } : {}),
         }),
       });
       if (res.ok) {
@@ -277,7 +302,7 @@ export function StageConfigSidebar({
         onOpenChange(false);
       } else {
         const data = await res.json();
-        alert(data.error || "Failed to delete stage");
+        toast.error(data.error || "Failed to delete stage");
       }
     } finally {
       setDeleting(false);
@@ -490,15 +515,36 @@ export function StageConfigSidebar({
                       className="font-mono text-xs"
                       placeholder="Hi {{name}}, welcome to JobSchool..."
                     />
-                    <Select value={newTplChannel} onValueChange={setNewTplChannel}>
+                    <Select value={newTplChannel} onValueChange={(v) => { setNewTplChannel(v); setNewTplEmailTemplateId(""); setNewTplSubject(""); }}>
                       <SelectTrigger className="w-full text-sm">
                         <SelectValue />
                       </SelectTrigger>
                       <SelectContent>
                         <SelectItem value="whatsapp">WhatsApp</SelectItem>
+                        <SelectItem value="email">Email</SelectItem>
                         <SelectItem value="sms">SMS</SelectItem>
                       </SelectContent>
                     </Select>
+                    {newTplChannel === "email" && (
+                      <>
+                        <Select value={newTplEmailTemplateId} onValueChange={setNewTplEmailTemplateId}>
+                          <SelectTrigger className="w-full text-sm">
+                            <SelectValue placeholder="Select email template..." />
+                          </SelectTrigger>
+                          <SelectContent>
+                            {emailTemplates.map((et) => (
+                              <SelectItem key={et.id} value={et.id}>{et.name} ({et.filename})</SelectItem>
+                            ))}
+                          </SelectContent>
+                        </Select>
+                        <Input
+                          value={newTplSubject}
+                          onChange={(e) => setNewTplSubject(e.target.value)}
+                          placeholder="Subject: Welcome {{name}}!"
+                          className="text-sm"
+                        />
+                      </>
+                    )}
                     <div className="flex gap-2">
                       <Button
                         variant="outline"

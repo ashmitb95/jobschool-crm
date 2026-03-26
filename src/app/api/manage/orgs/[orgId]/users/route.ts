@@ -90,6 +90,7 @@ export async function POST(
       email: email || null,
       role: "admin", // Force role to admin for initial org user
       orgId,
+      mustChangePassword: true,
     })
     .returning();
 

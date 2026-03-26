@@ -1,7 +1,8 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { pipelines, stages, leads } from "@/lib/db/schema";
+import { pipelines, stages, leads, metaFormMappings } from "@/lib/db/schema";
 import { eq, and, isNull, inArray, count } from "drizzle-orm";
+import { createId } from "@paralleldrive/cuid2";
 import { requireAuth, requireAdmin, getUserPipelineIds } from "@/lib/auth";
 import {
   apiSuccess,
@@ -106,13 +107,37 @@ export async function POST(request: NextRequest) {
       })
       .returning();
 
+    // Optionally link forms to this pipeline
+    const formIds: string[] = body.formIds || [];
+    const formNames: Record<string, string> = body.formNames || {}; // { formId: formName }
+    if (formIds.length > 0 && user.orgId) {
+      // Remove these forms from other pipeline mappings first
+      for (const formId of formIds) {
+        await db.delete(metaFormMappings).where(
+          and(eq(metaFormMappings.orgId, user.orgId), eq(metaFormMappings.formId, formId))
+        );
+      }
+      const now2 = new Date().toISOString();
+      for (const formId of formIds) {
+        await db.insert(metaFormMappings).values({
+          id: createId(),
+          orgId: user.orgId,
+          formId,
+          formName: formNames[formId] || null,
+          pipelineId: pipeline.id,
+          createdAt: now2,
+          updatedAt: now2,
+        });
+      }
+    }
+
     await logAudit({
       userId: user.id,
       orgId: user.orgId,
       action: "pipeline.created",
       entityType: "pipeline",
       entityId: pipeline.id,
-      metadata: { name, description },
+      metadata: { name, description, formIds },
     });
 
     return apiCreated(pipeline);

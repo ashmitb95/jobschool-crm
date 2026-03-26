@@ -5,10 +5,9 @@ import { usePathname } from "next/navigation";
 import {
   LayoutDashboard,
   Users,
-  Kanban,
   GitBranch,
   MessageSquare,
-  Settings,
+  Cable,
   Shield,
   LogOut,
 } from "lucide-react";
@@ -18,25 +17,26 @@ import { Badge } from "@/components/ui/badge";
 const nav = [
   { label: "Dashboard", href: "/", icon: LayoutDashboard },
   { label: "Leads", href: "/leads", icon: Users },
-  { label: "Pipeline", href: "/pipeline", icon: Kanban },
-  { label: "Workflow", href: "/workflow", icon: GitBranch },
+  { label: "Pipeline", href: "/workflow", icon: GitBranch },
   { label: "Templates", href: "/templates", icon: MessageSquare },
-  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
-const adminNav = { label: "Admin", href: "/admin", icon: Shield };
+const adminNav = [
+  { label: "Integrations", href: "/integrations", icon: Cable },
+  { label: "Admin", href: "/admin", icon: Shield },
+];
 
 export function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
 
-  const items = user?.role === "admin" ? [...nav, adminNav] : nav;
+  const items = user?.role === "admin" ? [...nav, ...adminNav] : nav;
 
   return (
     <aside className="w-56 border-r border-border bg-sidebar flex flex-col shrink-0">
       <div className="h-14 flex items-center gap-2.5 px-5 border-b border-border">
         <div className="w-6 h-6 rounded-full bg-primary" />
-        <span className="text-sm font-bold tracking-wider uppercase text-sidebar-foreground">
+        <span className="text-base font-semibold tracking-wide text-sidebar-foreground font-serif">
           JobSchool
         </span>
       </div>

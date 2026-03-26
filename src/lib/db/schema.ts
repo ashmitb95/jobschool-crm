@@ -9,6 +9,7 @@ export const organizations = sqliteTable("organizations", {
   name: text("name").notNull(),
   slug: text("slug").notNull().unique(),
   settings: text("settings"), // JSON: { timezone, defaultPipelineId, branding }
+  deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
@@ -21,6 +22,7 @@ export const users = sqliteTable("users", {
   displayName: text("display_name").notNull(),
   role: text("role").notNull().default("member"), // "super_admin" | "admin" | "member"
   orgId: text("org_id").references(() => organizations.id), // NULL for super_admin
+  mustChangePassword: integer("must_change_password", { mode: "boolean" }).notNull().default(false),
   deletedAt: text("deleted_at"),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
@@ -89,6 +91,17 @@ export const stages = sqliteTable("stages", {
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
 });
 
+export const emailTemplates = sqliteTable("email_templates", {
+  id: text("id").primaryKey().$defaultFn(() => createId()),
+  name: text("name").notNull(),
+  description: text("description"),
+  filename: text("filename").notNull().unique(),
+  subject: text("subject").notNull(),
+  variables: text("variables"), // JSON array: ["name","phone","email","stage","cv_link"]
+  createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
+  updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
+});
+
 export const messageTemplates = sqliteTable("message_templates", {
   id: text("id").primaryKey().$defaultFn(() => createId()),
   name: text("name").notNull(),
@@ -97,6 +110,8 @@ export const messageTemplates = sqliteTable("message_templates", {
   attachmentUrl: text("attachment_url"),
   waTemplateName: text("wa_template_name"),
   waTemplateLanguage: text("wa_template_language").default("en"),
+  emailTemplateId: text("email_template_id").references(() => emailTemplates.id),
+  subject: text("subject"),
   orgId: text("org_id").references(() => organizations.id),
   createdAt: text("created_at").notNull().$defaultFn(() => new Date().toISOString()),
   updatedAt: text("updated_at").notNull().$defaultFn(() => new Date().toISOString()),
@@ -111,6 +126,7 @@ export const leads = sqliteTable("leads", {
   sourceAdId: text("source_ad_id"),
   stageId: text("stage_id").notNull().references(() => stages.id),
   pipelineId: text("pipeline_id").references(() => pipelines.id, { onDelete: "cascade" }),
+  ownerId: text("owner_id").references(() => users.id),
   notes: text("notes"),
   metadata: text("metadata"),
   deletedAt: text("deleted_at"),
@@ -240,6 +256,7 @@ export const stagesRelations = relations(stages, ({ one, many }) => ({
 export const leadsRelations = relations(leads, ({ one, many }) => ({
   stage: one(stages, { fields: [leads.stageId], references: [stages.id] }),
   pipeline: one(pipelines, { fields: [leads.pipelineId], references: [pipelines.id] }),
+  owner: one(users, { fields: [leads.ownerId], references: [users.id] }),
   messages: many(messages),
   profile: one(candidateProfiles, { fields: [leads.id], references: [candidateProfiles.leadId] }),
   stageData: many(leadStageData),
@@ -251,9 +268,14 @@ export const messagesRelations = relations(messages, ({ one }) => ({
   template: one(messageTemplates, { fields: [messages.templateId], references: [messageTemplates.id] }),
 }));
 
+export const emailTemplatesRelations = relations(emailTemplates, ({ many }) => ({
+  messageTemplates: many(messageTemplates),
+}));
+
 export const messageTemplatesRelations = relations(messageTemplates, ({ one }) => ({
   organization: one(organizations, { fields: [messageTemplates.orgId], references: [organizations.id] }),
   stage: one(stages, { fields: [messageTemplates.id], references: [stages.templateId] }),
+  emailTemplate: one(emailTemplates, { fields: [messageTemplates.emailTemplateId], references: [emailTemplates.id] }),
 }));
 
 export const candidateProfilesRelations = relations(candidateProfiles, ({ one }) => ({

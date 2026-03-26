@@ -37,11 +37,11 @@ export async function POST(request: NextRequest) {
   const valid = await verifyPassword(currentPassword, dbUser.passwordHash);
   if (!valid) return apiError("Current password is incorrect", 400);
 
-  // Update password
+  // Update password and clear mustChangePassword flag
   const newHash = await hashPassword(newPassword);
   await db
     .update(users)
-    .set({ passwordHash: newHash, updatedAt: new Date().toISOString() })
+    .set({ passwordHash: newHash, mustChangePassword: false, updatedAt: new Date().toISOString() })
     .where(eq(users.id, user.id));
 
   // Invalidate all sessions and create a new one

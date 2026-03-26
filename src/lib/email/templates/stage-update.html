@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Stage Update</title>
+</head>
+<body style="margin:0;padding:0;background-color:#f5f0eb;font-family:Arial,Helvetica,sans-serif;">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f5f0eb;">
+<tr><td align="center" style="padding:32px 16px;">
+
+<table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
+
+<!-- Header -->
+<tr>
+<td style="background-color:#1a1510;padding:28px 32px;text-align:center;">
+  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">JobSchool</h1>
+</td>
+</tr>
+
+<!-- Body -->
+<tr>
+<td style="padding:40px 32px 32px;">
+  <h2 style="margin:0 0 16px;color:#1a1510;font-size:22px;font-weight:600;">Hi {{name}}, here's an update</h2>
+  <p style="margin:0 0 24px;color:#4a4540;font-size:15px;line-height:1.6;">
+    Your application status has been updated. Here's where things stand:
+  </p>
+
+  <!-- Status Card -->
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+    <tr>
+      <td style="padding:20px 24px;background-color:#fef7f3;border-radius:8px;border:1px solid #f5e6dc;text-align:center;">
+        <p style="margin:0 0 4px;color:#7a756e;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Current Stage</p>
+        <p style="margin:0;color:#e8622a;font-size:20px;font-weight:700;">{{stage}}</p>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- What's Next -->
+<tr>
+<td style="padding:0 32px 32px;">
+  <p style="margin:0 0 16px;color:#4a4540;font-size:15px;line-height:1.6;">
+    Our team is actively working on your profile. We'll keep you posted as things progress.
+    If you have any questions, feel free to reply to this email.
+  </p>
+</td>
+</tr>
+
+<!-- Contact Info -->
+<tr>
+<td style="padding:0 32px 32px;">
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background-color:#f9f6f3;border-radius:6px;">
+    <tr>
+      <td style="padding:16px 20px;">
+        <p style="margin:0 0 4px;color:#7a756e;font-size:12px;text-transform:uppercase;letter-spacing:0.5px;">Your details</p>
+        <p style="margin:0;color:#4a4540;font-size:14px;line-height:1.6;">
+          {{name}} &middot; {{phone}}<br>
+          {{email}}
+        </p>
+      </td>
+    </tr>
+  </table>
+</td>
+</tr>
+
+<!-- CTA -->
+<tr>
+<td style="padding:0 32px 40px;text-align:center;">
+  <a href="{{cv_link}}" style="display:inline-block;background-color:#e8622a;color:#ffffff;text-decoration:none;padding:12px 28px;border-radius:6px;font-size:15px;font-weight:600;">
+    Update Your CV
+  </a>
+</td>
+</tr>
+
+<!-- Footer -->
+<tr>
+<td style="background-color:#f9f6f3;padding:24px 32px;border-top:1px solid #ebe6e0;">
+  <p style="margin:0;color:#9a958e;font-size:12px;line-height:1.5;text-align:center;">
+    You're receiving this because you're registered with JobSchool.<br>
+    <a href="#" style="color:#9a958e;text-decoration:underline;">Unsubscribe</a>
+  </p>
+</td>
+</tr>
+
+</table>
+
+</td></tr>
+</table>
+</body>
+</html>

@@ -8,7 +8,7 @@ import {
   useCallback,
   type ReactNode,
 } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import type { AuthUser, Pipeline, Organization, OrgSettings } from "@/types";
 
 interface AuthState {
@@ -27,6 +27,7 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
+  const pathname = usePathname();
   const [state, setState] = useState<AuthState>({
     user: null,
     pipelines: [],
@@ -60,6 +61,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     fetchMe();
   }, [fetchMe]);
+
+  // Force redirect to change-password if flag is set
+  useEffect(() => {
+    if (state.loading) return;
+    if (state.user?.mustChangePassword && pathname !== "/change-password") {
+      router.replace("/change-password");
+    }
+  }, [state.loading, state.user?.mustChangePassword, pathname, router]);
 
   const logout = useCallback(async () => {
     await fetch("/api/auth/logout", { method: "POST" });

@@ -13,8 +13,17 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { Loader2, Plus, ChevronRight, ArrowLeft, Trash2 } from "lucide-react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Loader2, Plus, ChevronRight, ArrowLeft, Trash2, Copy, Check } from "lucide-react";
 import { toast } from "sonner";
+import { ConfirmDialog } from "@/components/ui/confirm-dialog";
 
 interface Org {
   id: string;
@@ -46,6 +55,18 @@ export default function ManagePage() {
   // Create admin for org
   const [showCreateAdmin, setShowCreateAdmin] = useState(false);
   const [newAdmin, setNewAdmin] = useState({ username: "", password: "", displayName: "", email: "" });
+
+  // Delete org dialog
+  const [deleteOrgId, setDeleteOrgId] = useState<string | null>(null);
+
+  // Credentials dialog (after org creation)
+  const [credentials, setCredentials] = useState<{ username: string; password: string } | null>(null);
+  const [copiedField, setCopiedField] = useState<string | null>(null);
+  function copyField(text: string, field: string) {
+    navigator.clipboard.writeText(text);
+    setCopiedField(field);
+    setTimeout(() => setCopiedField(null), 2000);
+  }
 
   const fetchOrgs = useCallback(async () => {
     setLoading(true);
@@ -83,10 +104,16 @@ export default function ManagePage() {
       body: JSON.stringify(newOrg),
     });
     if (res.ok) {
-      toast.success("Organization created");
+      const d = await res.json();
       setShowCreate(false);
       setNewOrg({ name: "", slug: "" });
       fetchOrgs();
+      // Show credentials dialog if admin was auto-created
+      if (d.data?.admin) {
+        setCredentials(d.data.admin);
+      } else {
+        toast.success("Organization created");
+      }
     } else {
       const d = await res.json();
       toast.error(d.error?.message || "Failed");
@@ -94,7 +121,6 @@ export default function ManagePage() {
   }
 
   async function deleteOrg(orgId: string) {
-    if (!confirm("Delete this organization? Only empty orgs can be deleted.")) return;
     const res = await fetch(`/api/manage/orgs/${orgId}`, { method: "DELETE" });
     if (res.ok) {
       toast.success("Organization deleted");
@@ -136,7 +162,7 @@ export default function ManagePage() {
               <Button variant="outline" size="sm" onClick={() => setSelectedOrg(null)}>
                 <ArrowLeft className="w-4 h-4 mr-1" />Back
               </Button>
-              <Button variant="destructive" size="sm" onClick={() => deleteOrg(selectedOrg.id)}>
+              <Button variant="destructive" size="sm" onClick={() => setDeleteOrgId(selectedOrg.id)}>
                 <Trash2 className="w-4 h-4 mr-1" />Delete Org
               </Button>
             </div>
@@ -185,6 +211,16 @@ export default function ManagePage() {
             </div>
           )}
         </div>
+
+        <ConfirmDialog
+          open={!!deleteOrgId}
+          onOpenChange={(open) => { if (!open) setDeleteOrgId(null); }}
+          title="Delete Organization"
+          description="Delete this organization? Only empty orgs can be deleted."
+          actionLabel="Delete"
+          variant="destructive"
+          onConfirm={() => { if (deleteOrgId) deleteOrg(deleteOrgId); }}
+        />
       </div>
     );
   }
@@ -242,6 +278,43 @@ export default function ManagePage() {
           </div>
         )}
       </div>
+
+      {/* Credentials Dialog */}
+      <Dialog open={!!credentials} onOpenChange={(open) => { if (!open) setCredentials(null); }}>
+        <DialogContent showCloseButton={false}>
+          <DialogHeader>
+            <DialogTitle>Organization Created</DialogTitle>
+            <DialogDescription>
+              Admin credentials have been generated. Save these now — the password will not be shown again.
+            </DialogDescription>
+          </DialogHeader>
+          {credentials && (
+            <div className="space-y-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Username</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="flex-1 text-sm font-mono bg-muted px-3 py-1.5 rounded border">{credentials.username}</code>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyField(credentials.username, "user")}>
+                    {copiedField === "user" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+              </div>
+              <div>
+                <Label className="text-xs text-muted-foreground">Password</Label>
+                <div className="flex items-center gap-2 mt-1">
+                  <code className="flex-1 text-sm font-mono bg-muted px-3 py-1.5 rounded border">{credentials.password}</code>
+                  <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyField(credentials.password, "pass")}>
+                    {copiedField === "pass" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
+          <DialogFooter>
+            <Button onClick={() => setCredentials(null)}>Done</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

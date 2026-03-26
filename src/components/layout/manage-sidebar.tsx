@@ -2,12 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Building2, LogOut } from "lucide-react";
+import { Building2, LogOut, Mail } from "lucide-react";
 import { useAuth } from "@/lib/auth-context";
 import { Badge } from "@/components/ui/badge";
 
 const nav = [
   { label: "Organizations", href: "/manage", icon: Building2 },
+  { label: "Email Templates", href: "/manage/email-templates", icon: Mail },
 ];
 
 export function ManageSidebar() {
@@ -18,14 +19,16 @@ export function ManageSidebar() {
     <aside className="w-56 border-r border-border bg-sidebar flex flex-col shrink-0">
       <div className="h-14 flex items-center gap-2.5 px-5 border-b border-border">
         <div className="w-6 h-6 rounded-full bg-primary" />
-        <span className="text-sm font-bold tracking-wider uppercase text-sidebar-foreground">
-          Admin Panel
+        <span className="text-base font-semibold tracking-wide text-sidebar-foreground font-serif">
+          JobSchool
         </span>
       </div>
 
       <nav className="flex-1 py-4 px-3 space-y-1">
         {nav.map((item) => {
-          const isActive = pathname === item.href || pathname.startsWith(item.href + "/");
+          const isActive = item.href === "/manage"
+            ? pathname === "/manage"
+            : pathname === item.href || pathname.startsWith(item.href + "/");
           return (
             <Link
               key={item.href}
@@ -54,7 +57,7 @@ export function ManageSidebar() {
                 {user.displayName}
               </p>
               <Badge variant="outline" className="text-[9px] px-1 py-0 h-3.5">
-                super_admin
+                {user.role}
               </Badge>
             </div>
           </div>

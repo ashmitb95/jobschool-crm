@@ -21,7 +21,10 @@ import { StageNode } from "@/components/workflow/stage-node";
 import { StageConfigSidebar } from "@/components/workflow/stage-config-sidebar";
 import { PipelineSelector } from "@/components/pipeline/pipeline-selector";
 import { useAuth } from "@/lib/auth-context";
-import { Loader2, Save, Plus, PlusCircle } from "lucide-react";
+import { Loader2, Save, Plus, PlusCircle, ChevronDown, ChevronUp, Globe } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
+import { FormPicker } from "@/components/pipeline/form-picker";
 import { toast } from "sonner";
 import { Input } from "@/components/ui/input";
 import {
@@ -69,6 +72,8 @@ export default function WorkflowPage() {
   const [showCreatePipeline, setShowCreatePipeline] = useState(false);
   const [newPipelineName, setNewPipelineName] = useState("");
   const [newPipelineDesc, setNewPipelineDesc] = useState("");
+  const [newPipelineFormIds, setNewPipelineFormIds] = useState<string[]>([]);
+  const [newPipelineFormNames, setNewPipelineFormNames] = useState<Record<string, string>>({});
   const [creatingPipeline, setCreatingPipeline] = useState(false);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -86,6 +91,10 @@ export default function WorkflowPage() {
   // Sidebar state
   const [selectedStageId, setSelectedStageId] = useState<string | null>(null);
   const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  // Lead sources (form mappings)
+  const [showLeadSources, setShowLeadSources] = useState(false);
+  const [formMappings, setFormMappings] = useState<{ formId: string; formName: string | null; pipelineId: string }[]>([]);
 
   const fetchWorkflow = useCallback(async () => {
     if (!selectedPipelineId) return;
@@ -136,6 +145,22 @@ export default function WorkflowPage() {
       fetchWorkflow();
     }
   }, [fetchWorkflow]);
+
+  // Fetch form mappings for lead sources panel
+  useEffect(() => {
+    if (!selectedPipelineId || user?.role !== "admin") return;
+    (async () => {
+      try {
+        const res = await fetch("/api/meta/mappings");
+        if (res.ok) {
+          const d = await res.json();
+          if (d.success) {
+            setFormMappings(d.data.mappings || d.data || []);
+          }
+        }
+      } catch { /* ignore */ }
+    })();
+  }, [selectedPipelineId, user?.role]);
 
   const onConnect = useCallback(
     (connection: Connection) => {
@@ -232,7 +257,12 @@ export default function WorkflowPage() {
       const res = await fetch("/api/pipelines", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newPipelineName, description: newPipelineDesc || undefined }),
+        body: JSON.stringify({
+          name: newPipelineName,
+          description: newPipelineDesc || undefined,
+          formIds: newPipelineFormIds.length > 0 ? newPipelineFormIds : undefined,
+          formNames: Object.keys(newPipelineFormNames).length > 0 ? newPipelineFormNames : undefined,
+        }),
       });
       if (!res.ok) {
         const d = await res.json();
@@ -245,6 +275,8 @@ export default function WorkflowPage() {
       setShowCreatePipeline(false);
       setNewPipelineName("");
       setNewPipelineDesc("");
+      setNewPipelineFormIds([]);
+      setNewPipelineFormNames({});
       await refresh(); // refresh auth context to get new pipeline
       setSelectedPipelineId(newId);
     } catch {
@@ -329,12 +361,21 @@ export default function WorkflowPage() {
                   <SheetHeader><SheetTitle>Create Pipeline</SheetTitle></SheetHeader>
                   <div className="space-y-4 mt-4">
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Name</label>
+                      <Label className="text-xs">Name</Label>
                       <Input value={newPipelineName} onChange={(e) => setNewPipelineName(e.target.value)} placeholder="e.g. Sales Pipeline" />
                     </div>
                     <div className="space-y-1.5">
-                      <label className="text-xs font-medium text-muted-foreground">Description</label>
+                      <Label className="text-xs">Description</Label>
                       <Input value={newPipelineDesc} onChange={(e) => setNewPipelineDesc(e.target.value)} placeholder="Optional description" />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label className="text-xs">Associated Lead Forms</Label>
+                      <p className="text-xs text-muted-foreground mb-2">Select Meta lead forms to route into this pipeline.</p>
+                      <FormPicker
+                        selectedFormIds={newPipelineFormIds}
+                        onChange={(ids, names) => { setNewPipelineFormIds(ids); if (names) setNewPipelineFormNames(names); }}
+                        pipelineNames={Object.fromEntries(pipelines.map(p => [p.id, p.name]))}
+                      />
                     </div>
                     <Button onClick={handleCreatePipeline} disabled={creatingPipeline || !newPipelineName.trim()} className="w-full">
                       {creatingPipeline && <Loader2 className="w-4 h-4 animate-spin mr-2" />}
@@ -368,6 +409,36 @@ export default function WorkflowPage() {
           </div>
         }
       />
+      {/* Lead Sources panel */}
+      {user?.role === "admin" && formMappings.length > 0 && (
+        <div className="border-b border-border">
+          <button
+            className="w-full flex items-center justify-between px-6 py-2 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            onClick={() => setShowLeadSources(!showLeadSources)}
+          >
+            <span className="flex items-center gap-1.5">
+              <Globe className="w-3.5 h-3.5" />
+              Lead Sources ({formMappings.filter((m) => m.pipelineId === selectedPipelineId).length} forms)
+            </span>
+            {showLeadSources ? <ChevronUp className="w-3.5 h-3.5" /> : <ChevronDown className="w-3.5 h-3.5" />}
+          </button>
+          {showLeadSources && (
+            <div className="px-6 pb-3 flex flex-wrap gap-2">
+              {formMappings
+                .filter((m) => m.pipelineId === selectedPipelineId)
+                .map((m) => (
+                  <Badge key={m.formId} variant="secondary" className="text-xs">
+                    {m.formName || m.formId}
+                  </Badge>
+                ))}
+              {formMappings.filter((m) => m.pipelineId === selectedPipelineId).length === 0 && (
+                <span className="text-xs text-muted-foreground">No forms linked to this pipeline. Configure in Integrations.</span>
+              )}
+            </div>
+          )}
+        </div>
+      )}
+
       <div className="flex-1">
         <ReactFlow
           nodes={nodes}
@@ -388,9 +459,10 @@ export default function WorkflowPage() {
             size={1}
             style={{ opacity: 0.15 }}
           />
-          <Controls className="!bg-card !border-border !shadow-lg" />
+          <Controls className="!bg-card !border-border !shadow-lg [&>button]:!bg-card [&>button]:!border-border [&>button]:!fill-foreground [&>button:hover]:!bg-accent" />
           <MiniMap
             className="!bg-card !border-border"
+            maskColor="rgba(0,0,0,0.6)"
             nodeColor={(n) => (n.data?.color as string) || "#6b7280"}
           />
         </ReactFlow>
