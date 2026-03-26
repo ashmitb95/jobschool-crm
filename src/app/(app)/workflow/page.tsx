@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import {
   ReactFlow,
   Background,
@@ -126,7 +126,8 @@ export default function WorkflowPage() {
         target: t.toStageId,
         type: "bezier",
         animated: true,
-        markerEnd: { type: MarkerType.ArrowClosed },
+        markerEnd: { type: MarkerType.ArrowClosed, color: "var(--muted-foreground)" },
+        style: { stroke: "var(--muted-foreground)", strokeWidth: 2 },
       }));
 
       setNodes(mappedNodes);
@@ -162,6 +163,50 @@ export default function WorkflowPage() {
     })();
   }, [selectedPipelineId, user?.role]);
 
+  // Save function (used by both manual save and autosave)
+  const saveWorkflow = useCallback(async (currentNodes: Node[], currentEdges: Edge[], showToast = true) => {
+    try {
+      const transitionPayload = currentEdges.map((e) => ({
+        fromStageId: e.source,
+        toStageId: e.target,
+      }));
+      const positionPayload = currentNodes.map((n) => ({
+        id: n.id,
+        x: n.position.x,
+        y: n.position.y,
+      }));
+      const [transRes, posRes] = await Promise.all([
+        fetch("/api/stages/transitions", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ transitions: transitionPayload, pipelineId: selectedPipelineId }),
+        }),
+        fetch("/api/workflow", {
+          method: "PUT",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ positions: positionPayload }),
+        }),
+      ]);
+      if (!transRes.ok || !posRes.ok) throw new Error("Failed to save");
+      if (showToast) toast.success("Workflow saved");
+    } catch (err) {
+      if (showToast) toast.error(err instanceof Error ? err.message : "Failed to save workflow");
+    }
+  }, [selectedPipelineId]);
+
+  const autosaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const nodesRef = useRef(nodes);
+  const edgesRef = useRef(edges);
+  nodesRef.current = nodes;
+  edgesRef.current = edges;
+
+  const triggerAutosave = useCallback(() => {
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    autosaveTimer.current = setTimeout(() => {
+      saveWorkflow(nodesRef.current, edgesRef.current, false);
+    }, 1500);
+  }, [saveWorkflow]);
+
   const onConnect = useCallback(
     (connection: Connection) => {
       setEdges((eds) =>
@@ -170,13 +215,15 @@ export default function WorkflowPage() {
             ...connection,
             type: "bezier",
             animated: true,
-            markerEnd: { type: MarkerType.ArrowClosed },
+            markerEnd: { type: MarkerType.ArrowClosed, color: "var(--muted-foreground)" },
+            style: { stroke: "var(--muted-foreground)", strokeWidth: 2 },
           },
           eds
         )
       );
+      triggerAutosave();
     },
-    [setEdges]
+    [setEdges, triggerAutosave]
   );
 
   const onEdgesDelete = useCallback(
@@ -184,8 +231,9 @@ export default function WorkflowPage() {
       setEdges((eds) =>
         eds.filter((e) => !deletedEdges.some((de) => de.id === e.id))
       );
+      triggerAutosave();
     },
-    [setEdges]
+    [setEdges, triggerAutosave]
   );
 
   // Click a node to open config sidebar
@@ -231,6 +279,7 @@ export default function WorkflowPage() {
       setSidebarOpen(true);
 
       toast.success("Stage created — configure it in the sidebar");
+      triggerAutosave();
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Failed to create stage");
     } finally {
@@ -288,42 +337,9 @@ export default function WorkflowPage() {
 
   async function handleSave() {
     setSaving(true);
-    try {
-      const transitionPayload = edges.map((e) => ({
-        fromStageId: e.source,
-        toStageId: e.target,
-      }));
-
-      const transRes = await fetch("/api/stages/transitions", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ transitions: transitionPayload, pipelineId: selectedPipelineId }),
-      });
-
-      if (!transRes.ok) throw new Error("Failed to save transitions");
-
-      const positionPayload = nodes.map((n) => ({
-        id: n.id,
-        x: n.position.x,
-        y: n.position.y,
-      }));
-
-      const posRes = await fetch("/api/workflow", {
-        method: "PUT",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ positions: positionPayload }),
-      });
-
-      if (!posRes.ok) throw new Error("Failed to save positions");
-
-      toast.success("Workflow saved");
-    } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Failed to save workflow"
-      );
-    } finally {
-      setSaving(false);
-    }
+    if (autosaveTimer.current) clearTimeout(autosaveTimer.current);
+    await saveWorkflow(nodes, edges, true);
+    setSaving(false);
   }
 
   if (loading) {
@@ -448,8 +464,11 @@ export default function WorkflowPage() {
           onConnect={onConnect}
           onEdgesDelete={onEdgesDelete}
           onNodeClick={onNodeClick}
+          onNodeDragStop={() => triggerAutosave()}
           nodeTypes={nodeTypes}
           fitView
+          minZoom={0.05}
+          maxZoom={2}
           style={{ background: "var(--background)" }}
           proOptions={{ hideAttribution: true }}
         >

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, stages, organizations, metaFormMappings, pipelines } from "@/lib/db/schema";
+import { leads, stages, organizations, metaFormMappings, pipelines, users } from "@/lib/db/schema";
 import { eq, and, sql, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { sendStageMessage } from "@/lib/message-engine";
@@ -131,6 +131,15 @@ export async function POST(req: NextRequest) {
         continue;
       }
 
+      // Auto-assign to org admin
+      let adminOwnerId: string | null = null;
+      if (orgId) {
+        const [orgAdmin] = await db.select({ id: users.id }).from(users)
+          .where(and(eq(users.orgId, orgId), eq(users.role, "admin"), isNull(users.deletedAt)))
+          .limit(1);
+        adminOwnerId = orgAdmin?.id || null;
+      }
+
       const id = createId();
       const now = new Date().toISOString();
       await db.insert(leads).values({
@@ -142,6 +151,7 @@ export async function POST(req: NextRequest) {
         sourceAdId: leadData.ad_id || null,
         stageId: targetStage.id,
         pipelineId: targetStage.pipelineId,
+        ownerId: adminOwnerId,
         metadata: JSON.stringify({ ...leadData, formId, formName }),
         createdAt: now,
         updatedAt: now,

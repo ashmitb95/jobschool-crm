@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
 import { leads, stages, messages } from "@/lib/db/schema";
 import { eq, desc, and, isNull } from "drizzle-orm";
-import { requireAuth, userHasPipelineAccess } from "@/lib/auth";
+import { requireAuth, requireAdmin, userHasPipelineAccess } from "@/lib/auth";
 import { apiError, apiNotFound } from "@/lib/api-response";
 import { logAudit } from "@/lib/audit";
 
@@ -80,6 +80,7 @@ export async function PATCH(
   if (body.phone !== undefined) updates.phone = body.phone;
   if (body.notes !== undefined) updates.notes = body.notes;
   if (body.source !== undefined) updates.source = body.source;
+  if (body.ownerId !== undefined) updates.ownerId = body.ownerId || null;
 
   await db.update(leads).set(updates).where(eq(leads.id, id));
 
@@ -108,6 +109,9 @@ export async function DELETE(
   req: NextRequest,
   { params }: { params: Promise<{ id: string }> }
 ) {
+  const adminCheck = await requireAdmin(req);
+  if (adminCheck instanceof NextResponse) return adminCheck;
+
   const { id } = await params;
   const result = await getLeadWithAccess(req, id);
   if ("error" in result) return result.error;

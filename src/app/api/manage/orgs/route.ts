@@ -1,6 +1,6 @@
 import { NextRequest } from "next/server";
 import { db } from "@/lib/db";
-import { organizations, users, pipelines, stages, stageTransitions, messageTemplates } from "@/lib/db/schema";
+import { organizations, users, pipelines, stages, stageTransitions, messageTemplates, stageFields } from "@/lib/db/schema";
 import { eq, count, isNull } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { requireSuperAdmin, hashPassword } from "@/lib/auth";
@@ -176,6 +176,27 @@ export async function POST(request: NextRequest) {
       updatedAt: now,
     });
     await db.update(stages).set({ templateId: tplId }).where(eq(stages.id, stageIds[tc.stage]));
+  }
+
+  // 7. Add default mandatory field to each non-default stage
+  const stageFieldConfigs = [
+    // No field for New Lead (index 0) — it's the entry stage
+    { stage: 1, name: "Contact Notes", fieldKey: "contact_notes", fieldType: "textarea" },
+    { stage: 2, name: "Qualification Notes", fieldKey: "qualification_notes", fieldType: "textarea" },
+    { stage: 3, name: "Conversion Details", fieldKey: "conversion_details", fieldType: "textarea" },
+    { stage: 4, name: "Reason for Loss", fieldKey: "loss_reason", fieldType: "textarea" },
+  ];
+  for (const sf of stageFieldConfigs) {
+    await db.insert(stageFields).values({
+      id: createId(),
+      stageId: stageIds[sf.stage],
+      name: sf.name,
+      fieldKey: sf.fieldKey,
+      fieldType: sf.fieldType,
+      required: true,
+      order: 0,
+      createdAt: now,
+    });
   }
 
   await logAudit({

@@ -1,10 +1,10 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db } from "@/lib/db";
-import { leads, stages } from "@/lib/db/schema";
+import { leads, stages, users } from "@/lib/db/schema";
 import { eq, like, and, gte, lte, desc, asc, count, or, isNull, inArray } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import { sendStageMessage } from "@/lib/message-engine";
-import { requireAuth, getUserPipelineIds, userHasPipelineAccess } from "@/lib/auth";
+import { requireAuth, requireAdmin, getUserPipelineIds, userHasPipelineAccess } from "@/lib/auth";
 import { apiError, apiValidationError } from "@/lib/api-response";
 import { createLeadSchema } from "@/lib/validations";
 import { logAudit, logLeadActivity } from "@/lib/audit";
@@ -25,6 +25,11 @@ export async function GET(req: NextRequest) {
   const sortBy = params.get("sortBy") || "newest";
 
   const conditions = [isNull(leads.deletedAt)];
+
+  // Members only see leads assigned to them
+  if (user.role === "member") {
+    conditions.push(eq(leads.ownerId, user.id));
+  }
 
   // Pipeline scoping
   if (pipelineId) {
@@ -70,15 +75,18 @@ export async function GET(req: NextRequest) {
         source: leads.source,
         stageId: leads.stageId,
         pipelineId: leads.pipelineId,
+        ownerId: leads.ownerId,
         notes: leads.notes,
         createdAt: leads.createdAt,
         updatedAt: leads.updatedAt,
         stageName: stages.name,
         stageColor: stages.color,
         stageOrder: stages.order,
+        ownerName: users.displayName,
       })
       .from(leads)
       .leftJoin(stages, eq(leads.stageId, stages.id))
+      .leftJoin(users, eq(leads.ownerId, users.id))
       .where(where)
       .orderBy(orderCol)
       .limit(limit)
@@ -92,13 +100,14 @@ export async function GET(req: NextRequest) {
     leads: rows.map((r) => ({
       ...r,
       stage: { id: r.stageId, name: r.stageName, color: r.stageColor, order: r.stageOrder },
+      owner: r.ownerId ? { id: r.ownerId, displayName: r.ownerName } : null,
     })),
     pagination: { page, limit, total, totalPages: Math.ceil(total / limit) },
   });
 }
 
 export async function POST(req: NextRequest) {
-  const user = await requireAuth(req);
+  const user = await requireAdmin(req);
   if (user instanceof NextResponse) return user;
 
   const body = await req.json();
@@ -143,6 +152,7 @@ export async function POST(req: NextRequest) {
     notes: notes || null,
     stageId: assignStageId,
     pipelineId,
+    ownerId: user.id, // Auto-assign to the admin who created the lead
     createdAt: now,
     updatedAt: now,
   });
