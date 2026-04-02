@@ -140,9 +140,9 @@ const steps = [
 ];
 
 const channels = [
-  { name: "WhatsApp", dot: "#25D366", description: "Rich templates, media attachments, and quick replies via the WhatsApp Business API." },
-  { name: "Email",    dot: T.blue,    description: "Branded transactional and outreach emails with open tracking and full template control." },
-  { name: "SMS",      dot: T.orange,  description: "Short-form SMS for quick nudges, reminders, and follow-ups that always get seen." },
+  { name: "Stage-triggered messages",  dot: T.orange, description: "Attach a WhatsApp or email template to any stage. The moment a lead moves in, the message fires — no manual action needed." },
+  { name: "Personalised at scale",     dot: T.blue,   description: "Templates use dynamic variables like name, phone, and stage so every automated message feels hand-written." },
+  { name: "Full activity trail",       dot: T.green,  description: "Every automated message is logged against the lead with a timestamp, so your team always knows what was sent and when." },
 ];
 
 // ─── Sub-components ───────────────────────────────────────────────────────────
@@ -418,29 +418,106 @@ function ExecutiveDashboardPreview() {
 }
 
 function MessagePreview() {
+  const events = [
+    { time: "09:41", label: "Priya K. moved to", stage: "Contacted", stageColor: T.gold },
+    { time: "09:41", label: "Auto-message fired", tag: "WhatsApp", tagColor: "#25D366" },
+    { time: "09:41", label: "Rahul M. moved to", stage: "Qualified", stageColor: T.purple },
+    { time: "09:41", label: "Auto-message fired", tag: "Email", tagColor: T.blue },
+  ];
+
   return (
     <div>
-      <p className="mb-4 text-xs font-semibold uppercase tracking-wide" style={{ color: T.fgDim }}>WhatsApp Outreach</p>
-      <div className="space-y-3">
-        <div className="flex justify-end">
-          <div className="max-w-[85%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white shadow-sm" style={{ backgroundColor: "#25D366" }}>
-            Hi Sarah! 👋 Thanks for your interest. Would you be available for a quick 15-min call this week?
+      <p className="mb-4 text-xs font-semibold uppercase tracking-wide" style={{ color: T.fgDim }}>Pipeline Automation Log</p>
+
+      {/* Event feed */}
+      <div className="space-y-2 mb-5">
+        {events.map((e, i) => (
+          <div key={i} className="flex items-center gap-3 rounded-xl px-3.5 py-2.5" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}` }}>
+            <span className="text-[10px] tabular-nums flex-none" style={{ color: T.fgDim }}>{e.time}</span>
+            <span className="flex-1 text-xs" style={{ color: T.fgMuted }}>{e.label}</span>
+            {e.stage && (
+              <span className="rounded px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: e.stageColor + "22", color: e.stageColor }}>{e.stage}</span>
+            )}
+            {e.tag && (
+              <span className="rounded px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: e.tagColor + "22", color: e.tagColor }}>✓ {e.tag}</span>
+            )}
           </div>
+        ))}
+      </div>
+
+      {/* Sample auto-sent message */}
+      <div className="rounded-xl p-4" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}` }}>
+        <div className="flex items-center gap-2 mb-3">
+          <span className="h-1.5 w-1.5 rounded-full" style={{ backgroundColor: "#25D366" }} />
+          <span className="text-[11px] font-medium" style={{ color: T.fgMuted }}>Auto-sent via WhatsApp · Contacted stage</span>
         </div>
-        <div className="flex justify-start">
-          <div className="max-w-[85%] rounded-2xl rounded-tl-sm px-4 py-3 text-sm shadow-sm" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}`, color: T.fg }}>
-            Yes, Thursday works great! 🙌
-          </div>
-        </div>
-        <div className="flex justify-end">
-          <div className="max-w-[85%] rounded-2xl rounded-tr-sm px-4 py-3 text-sm text-white shadow-sm" style={{ backgroundColor: "#25D366" }}>
-            Perfect, I&apos;ll send over the calendar link now.
-          </div>
+        <div className="rounded-xl rounded-tl-none px-4 py-3 text-sm text-white" style={{ backgroundColor: "#25D366" }}>
+          Hi Priya! 👋 Thanks for your interest. One of our team members will be in touch shortly to understand your needs.
         </div>
       </div>
-      <div className="mt-5 flex items-center gap-2 rounded-xl p-3" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}` }}>
-        <span className="flex-1 text-sm" style={{ color: T.fgDim }}>Use a template...</span>
-        <button className="rounded-lg px-3 py-1.5 text-xs font-semibold text-white" style={{ backgroundColor: T.orange }}>Send</button>
+    </div>
+  );
+}
+
+function LeadIngestionFlow() {
+  const sources = [
+    { label: "Meta Ads",    sublabel: "Real-time lead capture",      color: T.blue,   icon: "🎯", count: "+12 today" },
+    { label: "Web Form",    sublabel: "Embeddable on any page",      color: T.green,  icon: "🌐", count: "+5 today"  },
+    { label: "Referral",    sublabel: "Track word-of-mouth leads",   color: T.purple, icon: "👥", count: "+3 today"  },
+    { label: "CSV Import",  sublabel: "Bulk upload in seconds",      color: T.gold,   icon: "📄", count: "Anytime"   },
+  ];
+
+  const pipelineLeads = [
+    { name: "Priya K.",  source: "Meta Ads", sourceBg: "rgba(90,155,224,0.15)",   sourceFg: T.blue   },
+    { name: "Rahul M.",  source: "Web Form", sourceBg: "rgba(74,171,120,0.15)",   sourceFg: T.green  },
+    { name: "Sarah A.",  source: "Referral", sourceBg: "rgba(160,112,240,0.15)",  sourceFg: T.purple },
+    { name: "James T.",  source: "Meta Ads", sourceBg: "rgba(90,155,224,0.15)",   sourceFg: T.blue   },
+    { name: "Anita B.",  source: "CSV",      sourceBg: "rgba(212,169,78,0.15)",   sourceFg: T.gold   },
+  ];
+
+  return (
+    <div className="overflow-hidden rounded-2xl shadow-2xl" style={{ backgroundColor: T.card, border: `1px solid ${T.border}` }}>
+      <WindowChrome title="Lead Ingestion" badge="● Live" />
+      <div className="grid grid-cols-2 divide-x" style={{ borderColor: T.border }}>
+
+        {/* Sources */}
+        <div className="p-4 space-y-2" style={{ borderRight: `1px solid ${T.border}` }}>
+          <p className="mb-3 text-[11px] font-semibold uppercase tracking-wide" style={{ color: T.fgDim }}>Sources</p>
+          {sources.map((s) => (
+            <div key={s.label} className="flex items-center gap-3 rounded-xl px-3.5 py-2.5" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}` }}>
+              <span className="text-base">{s.icon}</span>
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold" style={{ color: T.fg }}>{s.label}</p>
+                <p className="text-[10px]" style={{ color: T.fgDim }}>{s.sublabel}</p>
+              </div>
+              <span className="text-[10px] font-medium tabular-nums" style={{ color: s.color }}>{s.count}</span>
+            </div>
+          ))}
+        </div>
+
+        {/* Pipeline intake */}
+        <div className="p-4">
+          <div className="flex items-center justify-between mb-3">
+            <p className="text-[11px] font-semibold uppercase tracking-wide" style={{ color: T.fgDim }}>New Leads — Auto-routed</p>
+            <span className="rounded-full px-2 py-0.5 text-[10px] font-semibold" style={{ backgroundColor: T.orangeDim, color: T.orange }}>↓ {pipelineLeads.length}</span>
+          </div>
+          <div className="space-y-2">
+            {pipelineLeads.map((l) => (
+              <div key={l.name} className="flex items-center gap-2.5 rounded-xl px-3.5 py-2.5" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}` }}>
+                <div className="flex h-6 w-6 flex-none items-center justify-center rounded-full text-[10px] font-bold text-white" style={{ backgroundColor: T.orange + "99" }}>
+                  {l.name[0]}
+                </div>
+                <span className="flex-1 text-xs font-medium" style={{ color: T.fg }}>{l.name}</span>
+                <span className="rounded px-1.5 py-0.5 text-[10px] font-medium" style={{ backgroundColor: l.sourceBg, color: l.sourceFg }}>{l.source}</span>
+              </div>
+            ))}
+          </div>
+          <div className="mt-3 flex items-center gap-2 rounded-xl px-3.5 py-2.5" style={{ backgroundColor: T.accent, border: `1px dashed ${T.border}` }}>
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke={T.fgDim} strokeWidth="2"><path d="M12 5v14M5 12h14" /></svg>
+            <span className="text-[11px]" style={{ color: T.fgDim }}>Leads assigned automatically or queued for review</span>
+          </div>
+        </div>
+
       </div>
     </div>
   );
@@ -476,10 +553,10 @@ export default function LandingPage() {
               <span className="text-lg font-bold" style={{ color: T.fg }}>LeadLynx</span>
             </div>
             <div className="hidden items-center gap-8 text-sm font-medium md:flex" style={{ color: T.fgMuted }}>
-              <a href="#features"    className="transition-colors hover:text-white">Features</a>
+              <a href="#ingestion"   className="transition-colors hover:text-white">Lead Capture</a>
               <a href="#pipeline"    className="transition-colors hover:text-white">Pipeline</a>
               <a href="#dashboard"   className="transition-colors hover:text-white">Dashboard</a>
-              <a href="#channels"    className="transition-colors hover:text-white">Outreach</a>
+              <a href="#channels"    className="transition-colors hover:text-white">Automation</a>
             </div>
             <div className="flex items-center gap-2">
               <Link href="/login" className="rounded-full px-4 py-2 text-sm font-medium transition-colors" style={{ color: T.fgMuted, border: `1px solid ${T.border}` }}>
@@ -503,10 +580,10 @@ export default function LandingPage() {
                 Built for fast-moving teams
               </div>
               <h1 className="mb-5 text-4xl font-bold leading-[1.15] tracking-tight md:text-5xl" style={{ color: T.fg }}>
-                Every Lead Tracked.<br />Every Deal Closed.
+                Stop losing leads.<br />Start closing them.
               </h1>
               <p className="mb-8 text-lg leading-relaxed" style={{ color: T.fgMuted }}>
-                LeadLynx gives your team a visual pipeline, multi-channel outreach, and the analytics to convert every opportunity — from first inquiry to final close.
+                LeadLynx pulls leads from Meta Ads, web forms, and referrals into your pipeline the moment they come in — then keeps them moving with automated engagement at every stage.
               </p>
               <div className="flex flex-col gap-3 sm:flex-row">
                 <ContactModal
@@ -541,6 +618,32 @@ export default function LandingPage() {
                 </div>
               ))}
             </dl>
+          </div>
+        </section>
+
+        {/* ── Lead Ingestion ──────────────────────────────────────────────── */}
+        <section id="ingestion" className="mx-auto max-w-6xl px-6 py-20 md:py-28">
+          <div className="grid grid-cols-1 items-center gap-14 md:grid-cols-2">
+            <div>
+              <h2 className="text-3xl font-bold md:text-4xl" style={{ color: T.fg }}>
+                Every source. One pipeline. Zero manual work.
+              </h2>
+              <p className="mt-4 mb-8 text-lg" style={{ color: T.fgMuted }}>
+                LeadLynx connects to every channel you use to acquire leads. The moment someone fills your Meta Ad form, submits your web form, or gets added via referral — they land in the right pipeline, tagged by source, ready to act on.
+              </p>
+              <ul className="space-y-4">
+                {[
+                  "Meta Ads leads captured in real-time as they come in",
+                  "Embeddable web forms — drop on any landing page",
+                  "Referral tracking with full source attribution",
+                  "Bulk CSV import for migrating existing leads",
+                  "Auto-assigned to a BD or queued for manual review",
+                ].map((item) => <CheckItem key={item} text={item} />)}
+              </ul>
+            </div>
+            <div>
+              <LeadIngestionFlow />
+            </div>
           </div>
         </section>
 
@@ -622,12 +725,20 @@ export default function LandingPage() {
         <section id="channels" className="mx-auto max-w-6xl px-6 py-20 md:py-28">
           <div className="grid grid-cols-1 items-center gap-14 md:grid-cols-2">
             <div>
-              <h2 className="text-3xl font-bold md:text-4xl" style={{ color: T.fg }}>Reach leads where they are</h2>
-              <p className="mt-4 mb-8 text-lg" style={{ color: T.fgMuted }}>
-                Send WhatsApp messages, emails, and SMS from a single place — with templates, variables, and attachments built in.
+              <h2 className="text-3xl font-bold md:text-4xl" style={{ color: T.fg }}>Engagement that runs itself</h2>
+              <p className="mt-4 mb-6 text-lg" style={{ color: T.fgMuted }}>
+                Attach message templates to pipeline stages. When a lead moves, the right WhatsApp or email goes out automatically — no one has to remember to follow up.
               </p>
               <div className="space-y-5">
                 {channels.map((c) => <ChannelRow key={c.name} {...c} />)}
+              </div>
+              {/* AI bot teaser */}
+              <div className="mt-8 flex items-start gap-3 rounded-xl p-4" style={{ backgroundColor: T.secondary, border: `1px solid ${T.border}` }}>
+                <span className="mt-0.5 rounded-full px-2 py-0.5 text-[10px] font-bold tracking-wide" style={{ backgroundColor: "rgba(160,112,240,0.15)", color: T.purple }}>COMING SOON</span>
+                <div>
+                  <p className="text-sm font-semibold" style={{ color: T.fg }}>AI Conversation Bot</p>
+                  <p className="mt-0.5 text-sm" style={{ color: T.fgMuted }}>Automatically qualify and respond to leads over WhatsApp using an AI agent — before your team ever gets involved.</p>
+                </div>
               </div>
             </div>
             <div className="rounded-2xl p-7 shadow-sm" style={{ backgroundColor: T.card, border: `1px solid ${T.border}` }}>
