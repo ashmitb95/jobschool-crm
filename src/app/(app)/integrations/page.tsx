@@ -332,8 +332,8 @@ export default function IntegrationsPage() {
                 <div>
                   <Label className="text-xs text-muted-foreground">Verify Token</Label>
                   <div className="flex items-center gap-2 mt-1">
-                    <code className="flex-1 text-xs font-mono bg-muted px-3 py-1.5 rounded border">jobschool_webhook_verify</code>
-                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard("jobschool_webhook_verify", "token")}>
+                    <code className="flex-1 text-xs font-mono bg-muted px-3 py-1.5 rounded border">leadlynx_webhook_verify</code>
+                    <Button variant="ghost" size="icon" className="h-8 w-8" onClick={() => copyToClipboard("leadlynx_webhook_verify", "token")}>
                       {copied === "token" ? <Check className="w-3.5 h-3.5 text-green-500" /> : <Copy className="w-3.5 h-3.5" />}
                     </Button>
                   </div>
@@ -516,7 +516,7 @@ export default function IntegrationsPage() {
                 </div>
                 <div>
                   <Label className="text-xs">From Name</Label>
-                  <Input value={emailFromName} onChange={(e) => setEmailFromName(e.target.value)} placeholder="JobSchool" />
+                  <Input value={emailFromName} onChange={(e) => setEmailFromName(e.target.value)} placeholder="LeadLynx" />
                 </div>
                 <Button size="sm" onClick={saveEmail} disabled={savingEmail}>
                   {savingEmail && <Loader2 className="w-3.5 h-3.5 animate-spin mr-1" />}

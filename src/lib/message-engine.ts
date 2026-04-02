@@ -45,7 +45,7 @@ export async function sendStageMessage(leadId: string, stageId: string) {
   if (template.channel === "email") {
     // Email channel: use HTML template if linked, otherwise wrap body as HTML
     let html: string;
-    let subject = renderTemplate(template.subject || "Update from JobSchool", variables);
+    let subject = renderTemplate(template.subject || "Update from LeadLynx", variables);
 
     if (template.emailTemplateId) {
       const [emailTpl] = await db.select().from(emailTemplates).where(eq(emailTemplates.id, template.emailTemplateId)).limit(1);
@@ -124,7 +124,7 @@ export async function sendManualMessage(leadId: string, body: string, channel: s
   if (channel === "email") {
     if (!lead.email) return null;
     const html = `<div style="font-family:Arial,sans-serif;font-size:15px;line-height:1.6;color:#333;">${body.replace(/\n/g, "<br>")}</div>`;
-    result = await provider.send({ to: lead.email, body: html, subject: "Message from JobSchool" }, orgSettings);
+    result = await provider.send({ to: lead.email, body: html, subject: "Message from LeadLynx" }, orgSettings);
   } else {
     result = await provider.send({ to: lead.phone, body }, orgSettings);
   }

@@ -11,7 +11,7 @@ const SAMPLE_VARIABLES = {
   phone: "+91 98765 43210",
   email: "ravi@example.com",
   stage: "Contacted",
-  cv_link: "https://jobschool.com/cv",
+  cv_link: "https://leadlynx.io/cv",
 };
 
 // GET /api/manage/email-templates/preview/[id] — Render with sample data

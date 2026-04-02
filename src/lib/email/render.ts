@@ -15,7 +15,7 @@ const BUNDLED_TEMPLATES: Record<string, string> = {
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
 <tr>
 <td style="background-color:#1a1510;padding:28px 32px;text-align:center;">
-  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">JobSchool</h1>
+  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">LeadLynx</h1>
 </td>
 </tr>
 <tr>
@@ -65,7 +65,7 @@ const BUNDLED_TEMPLATES: Record<string, string> = {
 <tr>
 <td style="background-color:#f9f6f3;padding:24px 32px;border-top:1px solid #ebe6e0;">
   <p style="margin:0;color:#9a958e;font-size:12px;line-height:1.5;text-align:center;">
-    You're receiving this because you signed up with JobSchool.<br>
+    You're receiving this because you signed up with LeadLynx.<br>
     <a href="#" style="color:#9a958e;text-decoration:underline;">Unsubscribe</a>
   </p>
 </td>
@@ -89,7 +89,7 @@ const BUNDLED_TEMPLATES: Record<string, string> = {
 <table role="presentation" width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;background-color:#ffffff;border-radius:8px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.08);">
 <tr>
 <td style="background-color:#1a1510;padding:28px 32px;text-align:center;">
-  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">JobSchool</h1>
+  <h1 style="margin:0;color:#ffffff;font-size:24px;font-weight:700;letter-spacing:-0.5px;">LeadLynx</h1>
 </td>
 </tr>
 <tr>
@@ -141,7 +141,7 @@ const BUNDLED_TEMPLATES: Record<string, string> = {
 <tr>
 <td style="background-color:#f9f6f3;padding:24px 32px;border-top:1px solid #ebe6e0;">
   <p style="margin:0;color:#9a958e;font-size:12px;line-height:1.5;text-align:center;">
-    You're receiving this because you're registered with JobSchool.<br>
+    You're receiving this because you're registered with LeadLynx.<br>
     <a href="#" style="color:#9a958e;text-decoration:underline;">Unsubscribe</a>
   </p>
 </td>

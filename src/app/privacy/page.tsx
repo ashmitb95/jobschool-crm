@@ -1,5 +1,5 @@
 export const metadata = {
-  title: "Privacy Policy | JobSchool",
+  title: "Privacy Policy | LeadLynx",
 };
 
 export default function PrivacyPolicyPage() {
@@ -14,7 +14,7 @@ export default function PrivacyPolicyPage() {
         <div>
           <h2 className="mb-2 text-lg font-semibold">1. Introduction</h2>
           <p>
-            JobSchool (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is
+            LeadLynx (&quot;we&quot;, &quot;our&quot;, or &quot;us&quot;) is
             committed to protecting your privacy. This Privacy Policy explains
             how we collect, use, disclose, and safeguard your information when
             you visit our website or use our services.
@@ -140,8 +140,8 @@ export default function PrivacyPolicyPage() {
           <p>
             If you have questions about this Privacy Policy, please contact us
             at{" "}
-            <a href="mailto:privacy@jobschool.com" className="underline">
-              privacy@jobschool.com
+            <a href="mailto:privacy@leadlynx.io" className="underline">
+              privacy@leadlynx.io
             </a>
             .
           </p>

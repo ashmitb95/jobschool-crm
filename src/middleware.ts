@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 
-const PUBLIC_PATHS = ["/login", "/api/auth/login", "/api/auth/logout"];
+const PUBLIC_PATHS = ["/", "/login", "/api/auth/login", "/api/auth/logout", "/api/contact"];
 const WEBHOOK_PREFIX = "/api/webhooks/";
 const STATIC_PREFIXES = ["/_next/", "/favicon.ico"];
 

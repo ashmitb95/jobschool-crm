@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const token = params.get("hub.verify_token");
   const challenge = params.get("hub.challenge");
 
-  const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || "jobschool_verify";
+  const VERIFY_TOKEN = process.env.META_VERIFY_TOKEN || "leadlynx_verify";
 
   if (mode === "subscribe" && token === VERIFY_TOKEN) {
     return new NextResponse(challenge, { status: 200 });

@@ -4,8 +4,8 @@ import type { ChannelProvider, SendParams, SendResult } from "./types";
 
 function getCredentials(orgSettings?: OrgSettings) {
   const apiKey = orgSettings?.email?.apiKey || process.env.RESEND_API_KEY;
-  const fromAddress = orgSettings?.email?.fromAddress || process.env.EMAIL_FROM_ADDRESS || "noreply@jobschool.com";
-  const fromName = orgSettings?.email?.fromName || process.env.EMAIL_FROM_NAME || "JobSchool";
+  const fromAddress = orgSettings?.email?.fromAddress || process.env.EMAIL_FROM_ADDRESS || "noreply@leadlynx.io";
+  const fromName = orgSettings?.email?.fromName || process.env.EMAIL_FROM_NAME || "LeadLynx";
   return { apiKey, fromAddress, fromName };
 }
 
@@ -32,7 +32,7 @@ const emailProvider: ChannelProvider = {
       const { data, error } = await resend.emails.send({
         from: `${fromName} <${fromAddress}>`,
         to: [params.to],
-        subject: params.subject || "Message from JobSchool",
+        subject: params.subject || "Message from LeadLynx",
         html: params.body,
       });
 

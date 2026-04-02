@@ -35,7 +35,7 @@ const STAGES = [
 ];
 
 const TEMPLATES = [
-  { name: "Welcome Message", body: "Hi {{name}}! Welcome to JobSchool. We're excited to help you on your career journey.", channel: "whatsapp", stageName: "New Lead" },
+  { name: "Welcome Message", body: "Hi {{name}}! Welcome to LeadLynx. We're excited to help you on your career journey.", channel: "whatsapp", stageName: "New Lead" },
   { name: "Follow-up", body: "Hey {{name}}, just checking in! Have you had a chance to try our CV Optimiser?", channel: "whatsapp", stageName: "Contacted" },
   { name: "Interest Confirmation", body: "Great news {{name}}! We'd love to tell you more about our programmes.", channel: "whatsapp", stageName: "Interested" },
   { name: "Qualified Lead", body: "Hi {{name}}, you've been shortlisted for our upcoming programme.", channel: "whatsapp", stageName: "Qualified" },
@@ -68,12 +68,12 @@ async function main() {
   // ─── 1. Create Organization ─────────────────────────────────────────────
   await db.insert(organizations).values({
     id: orgId,
-    name: "JobSchool",
-    slug: "jobschool",
+    name: "LeadLynx",
+    slug: "leadlynx",
     createdAt: now,
     updatedAt: now,
   });
-  console.log("Created organization: JobSchool");
+  console.log("Created organization: LeadLynx");
 
   // ─── 2. Create Users ───────────────────────────────────────────────────
   const superAdminHash = await bcrypt.hash("superadmin123", 12);

@@ -19,7 +19,7 @@ import { Badge } from "@/components/ui/badge";
 import { Sheet, SheetContent } from "@/components/ui/sheet";
 
 const nav = [
-  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { label: "Leads", href: "/leads", icon: Users },
   { label: "Pipeline", href: "/workflow", icon: GitBranch },
   { label: "Templates", href: "/templates", icon: MessageSquare },
@@ -40,7 +40,7 @@ function SidebarContent({ onNavigate }: { onNavigate?: () => void }) {
       <div className="h-14 flex items-center gap-2.5 px-5 border-b border-border shrink-0">
         <div className="w-6 h-6 rounded-full bg-primary" />
         <span className="text-base font-semibold tracking-wide text-sidebar-foreground font-serif">
-          JobSchool
+          LeadLynx
         </span>
       </div>
 

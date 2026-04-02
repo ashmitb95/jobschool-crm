@@ -49,7 +49,7 @@ export default function LoginPage() {
             <div className="w-5 h-5 rounded-full bg-primary" />
           </div>
           <h1 className="text-2xl font-semibold tracking-tight text-foreground font-serif">
-            JobSchool
+            LeadLynx
           </h1>
           <p className="text-sm text-muted-foreground">
             Sign in to your account

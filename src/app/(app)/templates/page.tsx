@@ -70,7 +70,7 @@ const sampleData: Record<string, string> = {
   "{{phone}}": "+971 50 123 4567",
   "{{email}}": "sarah@example.com",
   "{{stage}}": "Interview Prep",
-  "{{cv_link}}": "https://jobschool.io/cv/sarah-ahmed",
+  "{{cv_link}}": "https://leadlynx.io/cv/sarah-ahmed",
 };
 
 function renderPreview(body: string): string {
@@ -202,7 +202,7 @@ function TemplateCard({
                 ))}
               </div>
             </div>
-            <Textarea value={editing.body} onChange={(e) => setEditing((s) => ({ ...s, body: e.target.value }))} rows={4} placeholder="Hi {{name}}, welcome to JobSchool..." className="font-mono text-xs" />
+            <Textarea value={editing.body} onChange={(e) => setEditing((s) => ({ ...s, body: e.target.value }))} rows={4} placeholder="Hi {{name}}, welcome to LeadLynx..." className="font-mono text-xs" />
           </div>
 
           <div className="grid grid-cols-2 gap-3">
@@ -357,7 +357,7 @@ function NewTemplateForm({
             ))}
           </div>
         </div>
-        <Textarea value={form.body} onChange={(e) => setForm((s) => ({ ...s, body: e.target.value }))} rows={4} placeholder="Hi {{name}}, welcome to JobSchool..." className="font-mono text-xs" />
+        <Textarea value={form.body} onChange={(e) => setForm((s) => ({ ...s, body: e.target.value }))} rows={4} placeholder="Hi {{name}}, welcome to LeadLynx..." className="font-mono text-xs" />
       </div>
 
       <div className="grid grid-cols-2 gap-3">

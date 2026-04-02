@@ -7,7 +7,7 @@ import { eq, and, isNull, inArray } from "drizzle-orm";
 import { createId } from "@paralleldrive/cuid2";
 import type { AuthUser } from "@/types";
 
-const AUTH_SECRET = process.env.AUTH_SECRET || "jobschool-default-secret-change-me";
+const AUTH_SECRET = process.env.AUTH_SECRET || "leadlynx-default-secret-change-me";
 const SESSION_DURATION_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 
 // ─── Password Hashing ───────────────────────────────────────────────────────

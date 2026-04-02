@@ -6,7 +6,7 @@ export const USERS = {
   member: { username: "member", password: "member123", role: "member", redirect: "/pipeline" },
 } as const;
 
-export const ORG = { name: "JobSchool", slug: "jobschool" };
+export const ORG = { name: "LeadLynx", slug: "leadlynx" };
 export const PIPELINE = { name: "Default Pipeline" };
 
 export const STAGE_NAMES = ["New Lead", "Contacted", "Interested", "Qualified", "Enrolled", "Lost"] as const;

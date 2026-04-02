@@ -20,7 +20,7 @@ test.describe("Templates API", () => {
       const name = `Test Template ${Date.now()}`;
       const res = await api.asAdmin().post("/api/templates", {
         name,
-        body: "Hello {{name}}, welcome to JobSchool!",
+        body: "Hello {{name}}, welcome to LeadLynx!",
       });
       expect(res.status).toBe(201);
 

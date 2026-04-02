@@ -30,13 +30,13 @@ export async function POST(req: NextRequest) {
   if (channel === "email") {
     result = await provider.send({
       to,
-      subject: "Test Email from JobSchool",
-      body: `<div style="font-family:Arial,sans-serif;padding:20px;"><h2 style="color:#e8622a;">Hello from JobSchool!</h2><p>This is a test email to verify your email integration is working correctly.</p></div>`,
+      subject: "Test Email from LeadLynx",
+      body: `<div style="font-family:Arial,sans-serif;padding:20px;"><h2 style="color:#e8622a;">Hello from LeadLynx!</h2><p>This is a test email to verify your email integration is working correctly.</p></div>`,
     }, settings);
   } else {
     result = await provider.send({
       to,
-      body: "Hello from JobSchool! This is a test message to verify your integration is working correctly.",
+      body: "Hello from LeadLynx! This is a test message to verify your integration is working correctly.",
     }, settings);
   }
 

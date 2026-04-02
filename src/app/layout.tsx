@@ -16,7 +16,7 @@ const zillaSlab = Zilla_Slab({
 });
 
 export const metadata: Metadata = {
-  title: "JobSchool CRM",
+  title: "LeadLynx",
   description: "Lead management & candidate engagement platform",
 };
 

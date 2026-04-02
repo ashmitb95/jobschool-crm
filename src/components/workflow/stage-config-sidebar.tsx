@@ -85,7 +85,7 @@ const sampleVars: Record<string, string> = {
   "{{phone}}": "+971 50 123 4567",
   "{{email}}": "sarah@example.com",
   "{{stage}}": "New Lead",
-  "{{cv_link}}": "https://jobschool.io/cv",
+  "{{cv_link}}": "https://leadlynx.io/cv",
 };
 
 /* ---------- component ---------- */
@@ -513,7 +513,7 @@ export function StageConfigSidebar({
                       onChange={(e) => setNewTplBody(e.target.value)}
                       rows={4}
                       className="font-mono text-xs"
-                      placeholder="Hi {{name}}, welcome to JobSchool..."
+                      placeholder="Hi {{name}}, welcome to LeadLynx..."
                     />
                     <Select value={newTplChannel} onValueChange={(v) => { setNewTplChannel(v); setNewTplEmailTemplateId(""); setNewTplSubject(""); }}>
                       <SelectTrigger className="w-full text-sm">

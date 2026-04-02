@@ -20,12 +20,12 @@ test.describe("Manage Page (Super Admin)", () => {
     await page.goto(`${BASE_URL}/manage`);
     await page.waitForLoadState("networkidle");
 
-    // Should display at least the seeded org (JobSchool)
+    // Should display at least the seeded org (LeadLynx)
     const orgList = page.locator("[class*='divide-y']").first();
     await expect(orgList).toBeVisible({ timeout: 10000 });
 
     // Look for the seed org name
-    const orgEntry = page.getByText("JobSchool");
+    const orgEntry = page.getByText("LeadLynx");
     await expect(orgEntry).toBeVisible({ timeout: 10000 });
   });
 
